@@ -1,0 +1,10 @@
+.idea
+/venv
+__pycache__
+.env
+env/*
+!env/.gitkeep
+logs/*
+!logs/.gitkeep
+celerybeat-schedule
+.docker_running_update
