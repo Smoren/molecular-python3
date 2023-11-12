@@ -1,29 +1,36 @@
 from typing import Tuple
 
-import pandas as pd
 import numpy as np
 
 
+class AtomField:
+    X = 0
+    Y = 1
+    VX = 2
+    VY = 3
+    RADIUS = 4
+
+
 class Storage:
-    data: pd.DataFrame
+    data: np.ndarray
     _max_coord: Tuple[int, int]
 
     def __init__(self, size: int, max_coord: Tuple[int, int]):
         self._max_coord = max_coord
-        self.data = pd.DataFrame({
-            'x': np.random.randint(low=0, high=max_coord[0], size=size),
-            'y': np.random.randint(low=0, high=max_coord[1], size=size),
-            'vx': np.random.randint(low=-10, high=10, size=size),
-            'vy': np.random.randint(low=-10, high=10, size=size),
-            'radius': np.repeat(5, size),
-        })
+        self.data = np.array([
+            np.random.randint(low=0, high=max_coord[0], size=size),
+            np.random.randint(low=0, high=max_coord[1], size=size),
+            np.random.randint(low=-10, high=10, size=size),
+            np.random.randint(low=-10, high=10, size=size),
+            np.repeat(1, size),
+        ]).T
 
     def move(self) -> None:
-        self.data['x'] += self.data['vx']
-        self.data['y'] += self.data['vy']
+        self.data[:, AtomField.X] += self.data[:, AtomField.VX]
+        self.data[:, AtomField.Y] += self.data[:, AtomField.VY]
 
-        self.data.loc[self.data['x'] < 0, 'vx'] += 10
-        self.data.loc[self.data['y'] < 0, 'vy'] += 10
+        self.data[self.data[:, AtomField.X] < 0, AtomField.VX] += 10
+        self.data[self.data[:, AtomField.Y] < 0, AtomField.VY] += 10
 
-        self.data.loc[self.data['x'] > self._max_coord[0], 'vx'] -= 10
-        self.data.loc[self.data['y'] > self._max_coord[1], 'vy'] -= 10
+        self.data[self.data[:, AtomField.X] > self._max_coord[0], AtomField.VX] -= 10
+        self.data[self.data[:, AtomField.Y] > self._max_coord[1], AtomField.VY] -= 10
