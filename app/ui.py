@@ -26,6 +26,7 @@ class Ui:
                 if event.type == pygame.QUIT:
                     self.stop()
 
+            self._storage.interact()
             self._storage.move()
             self.display()
             self._clock.tick(30)
