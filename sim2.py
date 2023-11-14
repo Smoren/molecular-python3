@@ -1,3 +1,4 @@
+import math
 from typing import Tuple, List
 
 import numpy as np
@@ -10,6 +11,9 @@ class Atom:
     vx: int
     vy: int
     radius: int
+
+    def get_mass(self):
+        return math.pi * self.radius**2
 
     def __init__(self, x: int, y: int, vx: int, vy: int, radius: int):
         self.x = x
@@ -33,21 +37,24 @@ def step(screen: pygame.Surface, atoms: List[Atom]) -> None:
         for rhs in atoms:
             if lhs == rhs:
                 continue
+
             dist = np.linalg.norm(np.array([lhs.x - rhs.x, lhs.y - rhs.y]))
-            if dist < lhs.radius + rhs.radius:
-                delta_x = lhs.x - rhs.x
-                delta_y = lhs.y - rhs.y
-                lhs.vx += delta_x / dist * 2
-                lhs.vy += delta_y / dist * 2
+            radius_sum = lhs.radius + rhs.radius
+
+            if dist < radius_sum:
+                delta_x = -rhs.x + lhs.x
+                delta_y = -rhs.y + lhs.y
+                a = 0.01 * rhs.get_mass() / dist**2
+
+                lhs.vx += delta_x * (radius_sum - dist) * a
+                lhs.vy += delta_y * (radius_sum - dist) * a
             else:
-                G = 30
-                force = G * lhs.radius * rhs.radius / dist**2
-                delta_x = lhs.x - rhs.x
-                delta_y = lhs.y - rhs.y
-                force_x = force * delta_x / dist
-                force_y = force * delta_y / dist
-                lhs.x -= force_x
-                lhs.y -= force_y
+                delta_x = rhs.x - lhs.x
+                delta_y = rhs.y - lhs.y
+                a = 2 * rhs.get_mass() / dist**2
+
+                lhs.vx += delta_x / dist * a
+                lhs.vy += delta_y / dist * a
 
     screen.fill((0, 0, 0))
     for atom in atoms:
@@ -57,6 +64,10 @@ def step(screen: pygame.Surface, atoms: List[Atom]) -> None:
 
 def generate_atoms(atoms_count: int, window_size: Tuple[int, int]) -> List[Atom]:
     atoms = []
+
+    atoms.append(Atom(500, 500, 0, 0, 50))
+    atoms.append(Atom(700, 500, 0, 10, 5))
+
     for _ in range(atoms_count):
         x = np.random.randint(low=0, high=window_size[0])
         y = np.random.randint(low=0, high=window_size[1])
