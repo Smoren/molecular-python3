@@ -81,7 +81,7 @@ def generate_atoms(atoms_count: int, window_size: Tuple[int, int]) -> List[Atom]
 
 if __name__ == '__main__':
     window_size = (1900, 1000)
-    atoms_count = 10
+    atoms_count = 1000
     atoms = generate_atoms(atoms_count, window_size)
     screen = pygame.display.set_mode(window_size)
     clock = pygame.time.Clock()
