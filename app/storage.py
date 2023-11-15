@@ -80,7 +80,7 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            cluster_masks_map[cluster_coords_tuple] = cluster_mask
+            cluster_masks_map[cluster_coords_tuple] = cluster_mask, cluster_atoms.shape, neighbour_atoms.shape
 
             shared_variable_names.append(
                 create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster_atoms')
