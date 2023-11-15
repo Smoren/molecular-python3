@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import multiprocessing as mp
 
 
 class AtomField:
@@ -17,10 +18,12 @@ class Storage:
     data: np.ndarray
     _max_coord: Tuple[int, int]
     _cluster_size: int
+    _pool: mp.Pool
 
     def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
         self._max_coord = max_coord
         self._cluster_size = cluster_size
+        self._pool = mp.Pool(processes=mp.cpu_count()-2)
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
@@ -30,6 +33,27 @@ class Storage:
             np.repeat(0, size),
             np.repeat(0, size),
         ]).T
+
+    def interact_step(self, cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray) -> np.ndarray:
+        for atom in cluster_atoms:
+            d = np.array([
+                neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
+                neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
+            ).T
+
+            l = np.linalg.norm(d, axis=1)
+
+            du = (d.T / l).T
+            du[np.isnan(du)] = 0
+
+            dv = (du.T / l).T
+            dv[np.isnan(dv)] = 0
+            dv = np.sum(dv, axis=0) * 4
+
+            atom[AtomField.VX] += dv[0]
+            atom[AtomField.VY] += dv[1]
+
+        return cluster_atoms
 
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
@@ -45,25 +69,7 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            for atom in cluster_atoms:
-                d = np.array([
-                    neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
-                    neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
-                ).T
-
-                l = np.linalg.norm(d, axis=1)
-
-                du = (d.T / l).T
-                du[np.isnan(du)] = 0
-
-                dv = (du.T / l).T
-                dv[np.isnan(dv)] = 0
-                dv = np.sum(dv, axis=0) * 4
-
-                atom[AtomField.VX] += dv[0]
-                atom[AtomField.VY] += dv[1]
-
-            self.data[cluster_mask] = cluster_atoms
+            self.data[cluster_mask] = self.interact_step(cluster_atoms, neighbour_atoms)
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
