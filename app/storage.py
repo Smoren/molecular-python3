@@ -1,3 +1,4 @@
+from multiprocessing import shared_memory
 from typing import Tuple
 
 import numpy as np
@@ -32,10 +33,11 @@ class Storage:
             np.repeat(5, size),
             np.repeat(0, size),
             np.repeat(0, size),
-        ]).T
+        ], dtype=np.float64).T
 
     @staticmethod
     def interact_step(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
+        # shm = shared_memory.SharedMemory(name=name)
         for atom in cluster_atoms:
             d = np.array([
                 neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
@@ -72,16 +74,20 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
+            # cluster_name = str(cluster_coords)
+            # shared_var_size = np.dtype(np.float64).itemsize * np.prod(neighbour_atoms.shape)
+            # shm = shared_memory.SharedMemory(create=True, size=shared_var_size, name=cluster_name)
+            # dst = np.ndarray(shape=neighbour_atoms.shape, dtype=np.float64, buffer=shm.buf)
+            # shm.close()
+            # shm.unlink()
+
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
-            # self.data[cluster_mask] = self.interact_step(cluster_atoms, neighbour_atoms)
+            # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
         task_results = self._pool.starmap(self.interact_step, tasks_data)
         for task_result in task_results:
             cluster_atoms, cluster_mask = task_result
-            self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
-
-        # for cluster_atoms, neighbour_atoms, cluster_mask in tasks_data:
-        #     self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
+            self.data[cluster_mask] = cluster_atoms
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
