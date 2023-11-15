@@ -23,7 +23,7 @@ class Storage:
     def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
         self._max_coord = max_coord
         self._cluster_size = cluster_size
-        self._pool = mp.Pool(processes=16)
+        self._pool = mp.Pool(processes=20)
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
@@ -61,8 +61,6 @@ class Storage:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
         tasks_data = []
-        shared_variable_names = []
-        cluster_mask_map = dict()
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
