@@ -63,35 +63,7 @@ class Storage:
                 atom[AtomField.VX] += dv[0]
                 atom[AtomField.VY] += dv[1]
 
-        for atom in self.data:
-            cluster_x = atom[AtomField.CLUSTER_X]
-            cluster_y = atom[AtomField.CLUSTER_Y]
-            neighbours_mask = (self.data[:, AtomField.CLUSTER_X] >= cluster_x - 1) & \
-                (self.data[:, AtomField.CLUSTER_X] <= cluster_x + 1) & \
-                (self.data[:, AtomField.CLUSTER_Y] >= cluster_y - 1) & \
-                (self.data[:, AtomField.CLUSTER_Y] <= cluster_y + 1)
-
-            d = np.array([
-                self.data[neighbours_mask, AtomField.X] - atom[AtomField.X],
-                self.data[neighbours_mask, AtomField.Y] - atom[AtomField.Y]]
-            ).T
-
-            # d = np.array([
-            #     self.data[:, AtomField.X] - atom[AtomField.X],
-            #     self.data[:, AtomField.Y] - atom[AtomField.Y]]
-            # ).T
-
-            l = np.linalg.norm(d, axis=1)
-
-            du = (d.T/l).T
-            du[np.isnan(du)] = 0
-
-            dv = (du.T/l).T
-            dv[np.isnan(dv)] = 0
-            dv = np.sum(dv, axis=0) * 4
-
-            atom[AtomField.VX] += dv[0]
-            atom[AtomField.VY] += dv[1]
+            self.data[cluster_mask] = cluster_atoms
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
