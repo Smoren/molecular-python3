@@ -1,10 +1,7 @@
-from multiprocessing import shared_memory
 from typing import Tuple
 
 import numpy as np
 import multiprocessing as mp
-
-from app.shared import create_shared_variable_for_cluster, destroy_shared_variable
 
 
 class AtomField:
@@ -80,16 +77,6 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            cluster_mask_map[cluster_coords_tuple] = cluster_mask
-
-            shared_variable_names.append(
-                create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster_atoms')
-            )
-            shared_variable_names.append(
-                create_shared_variable_for_cluster(cluster_coords, neighbour_atoms, 'neighbour_atoms')
-            )
-
-            # tasks_data.append((clusters_coords, cluster_atoms.shape, neighbour_atoms.shape))
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
             # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
@@ -97,9 +84,6 @@ class Storage:
         for task_result in task_results:
             cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask] = cluster_atoms
-
-        for var_name in shared_variable_names:
-            destroy_shared_variable(var_name)
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
