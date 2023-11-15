@@ -1,7 +1,7 @@
 from app.storage import Storage
 from app.ui import Ui
 
-ATOMS_COUNT = 300
+ATOMS_COUNT = 5000
 WINDOW_SIZE = (1900, 1000)
 CLUSTER_SIZE = 100
 
