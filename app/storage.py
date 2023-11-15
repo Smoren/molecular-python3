@@ -75,8 +75,13 @@ class Storage:
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
             # self.data[cluster_mask] = self.interact_step(cluster_atoms, neighbour_atoms)
 
-        for cluster_atoms, neighbour_atoms, cluster_mask in tasks_data:
+        task_results = self._pool.starmap(self.interact_step, tasks_data)
+        for task_result in task_results:
+            cluster_atoms, neighbour_atoms, cluster_mask = task_result
             self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
+
+        # for cluster_atoms, neighbour_atoms, cluster_mask in tasks_data:
+        #     self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
