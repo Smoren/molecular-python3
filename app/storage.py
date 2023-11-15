@@ -4,6 +4,8 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
+from app.shared import create_shared_variable_for_cluster, destroy_shared_variable
+
 
 class AtomField:
     X = 0
@@ -62,6 +64,7 @@ class Storage:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
         tasks_data = []
+        shared_variable_names = []
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -74,12 +77,12 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            # cluster_name = str(cluster_coords)
-            # shared_var_size = np.dtype(np.float64).itemsize * np.prod(neighbour_atoms.shape)
-            # shm = shared_memory.SharedMemory(create=True, size=shared_var_size, name=cluster_name)
-            # dst = np.ndarray(shape=neighbour_atoms.shape, dtype=np.float64, buffer=shm.buf)
-            # shm.close()
-            # shm.unlink()
+            shared_variable_names.append(
+                create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster')
+            )
+            shared_variable_names.append(
+                create_shared_variable_for_cluster(cluster_coords, neighbour_atoms, 'neighbors')
+            )
 
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
             # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
@@ -88,6 +91,9 @@ class Storage:
         for task_result in task_results:
             cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask] = cluster_atoms
+
+        for var_name in shared_variable_names:
+            destroy_shared_variable(var_name)
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
