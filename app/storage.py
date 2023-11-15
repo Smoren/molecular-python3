@@ -34,29 +34,6 @@ class Storage:
             np.repeat(0, size),
         ], dtype=np.float64).T
 
-    @staticmethod
-    def interact_step(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
-        # shm = shared_memory.SharedMemory(name=name)
-        for atom in cluster_atoms:
-            d = np.array([
-                neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
-                neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
-            ).T
-
-            l = np.linalg.norm(d, axis=1)
-
-            du = (d.T / l).T
-            du[np.isnan(du)] = 0
-
-            dv = (du.T / l).T
-            dv[np.isnan(dv)] = 0
-            dv = np.sum(dv, axis=0) * 4
-
-            atom[AtomField.VX] += dv[0]
-            atom[AtomField.VY] += dv[1]
-
-        return cluster_atoms, cluster_mask
-
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
@@ -78,7 +55,7 @@ class Storage:
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
             # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
-        task_results = self._pool.starmap(self.interact_step, tasks_data)
+        task_results = self._pool.starmap(self._interact_cluster, tasks_data)
         for task_result in task_results:
             cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask] = cluster_atoms
@@ -95,3 +72,26 @@ class Storage:
 
         self.data[:, AtomField.CLUSTER_X] = np.floor(self.data[:, AtomField.X] / self._cluster_size)
         self.data[:, AtomField.CLUSTER_Y] = np.floor(self.data[:, AtomField.Y] / self._cluster_size)
+
+    @staticmethod
+    def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
+        # shm = shared_memory.SharedMemory(name=name)
+        for atom in cluster_atoms:
+            d = np.array([
+                neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
+                neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
+            ).T
+
+            l = np.linalg.norm(d, axis=1)
+
+            du = (d.T / l).T
+            du[np.isnan(du)] = 0
+
+            dv = (du.T / l).T
+            dv[np.isnan(dv)] = 0
+            dv = np.sum(dv, axis=0) * 4
+
+            atom[AtomField.VX] += dv[0]
+            atom[AtomField.VY] += dv[1]
+
+        return cluster_atoms, cluster_mask
