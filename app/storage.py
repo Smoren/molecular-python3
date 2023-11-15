@@ -79,11 +79,9 @@ class Storage:
         _x, _y, _vx, _vy = 0, 1, 2, 3
 
         for atom in cluster_atoms:
-            d = neighbour_atoms[:, [_x, _y]] - atom[[_x, _y]]
+            mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
+            d = neighbour_atoms[mask][:, [_x, _y]] - atom[[_x, _y]]
             l = np.linalg.norm(d, axis=1)
-
-            d = d[l != 0]
-            l = l[l != 0]
 
             du = (d.T / l).T
 
