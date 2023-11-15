@@ -9,20 +9,26 @@ class AtomField:
     VX = 2
     VY = 3
     RADIUS = 4
+    CLUSTER_X = 5
+    CLUSTER_Y = 6
 
 
 class Storage:
     data: np.ndarray
     _max_coord: Tuple[int, int]
+    _cluster_size: int
 
-    def __init__(self, size: int, max_coord: Tuple[int, int]):
+    def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
         self._max_coord = max_coord
+        self._cluster_size = cluster_size
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
             np.random.randint(low=-10, high=10, size=size).astype('float'),
             np.random.randint(low=-10, high=10, size=size).astype('float'),
             np.repeat(5, size),
+            np.repeat(0, size),
+            np.repeat(0, size),
         ]).T
 
     def interact(self) -> None:
@@ -53,3 +59,6 @@ class Storage:
 
         self.data[self.data[:, AtomField.X] > self._max_coord[0], AtomField.VX] -= 10
         self.data[self.data[:, AtomField.Y] > self._max_coord[1], AtomField.VY] -= 10
+
+        self.data[:, AtomField.CLUSTER_X] = np.floor(self.data[:, AtomField.X] / self._cluster_size)
+        self.data[:, AtomField.CLUSTER_Y] = np.floor(self.data[:, AtomField.Y] / self._cluster_size)
