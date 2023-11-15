@@ -23,7 +23,7 @@ class Storage:
     def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
         self._max_coord = max_coord
         self._cluster_size = cluster_size
-        self._pool = mp.Pool(processes=mp.cpu_count()-2)
+        self._pool = mp.Pool(processes=16)
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
@@ -77,7 +77,7 @@ class Storage:
 
         task_results = self._pool.starmap(self.interact_step, tasks_data)
         for task_result in task_results:
-            cluster_atoms, neighbour_atoms, cluster_mask = task_result
+            cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
         # for cluster_atoms, neighbour_atoms, cluster_mask in tasks_data:
