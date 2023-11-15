@@ -41,8 +41,7 @@ class Storage:
 
         tasks_data = []
         shared_variables = []
-        cluster_mask_map = dict()
-        cluster_atoms_shape_map = dict()
+        cluster_params_map = dict()
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -57,8 +56,7 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            cluster_mask_map[cluster_coords_tuple] = cluster_mask
-            cluster_atoms_shape_map[cluster_coords_tuple] = cluster_atoms.shape
+            cluster_params_map[cluster_coords_tuple] = cluster_mask, cluster_atoms.shape
 
             shared_variables.append(
                 create_shared_variable_for_cluster(cluster_coords_tuple, cluster_atoms, 'cluster_atoms')
@@ -72,12 +70,13 @@ class Storage:
         task_results = self._pool.starmap(self._interact_step, tasks_data)
         for task_result in task_results:
             cluster_coords_tuple, shm1, shm2 = task_result
+            cluster_mask, cluster_atoms_shape = cluster_params_map[cluster_coords_tuple]
             cluster_atoms, shm = get_shared_variable(
                 cluster_coords_tuple,
-                cluster_atoms_shape_map[cluster_coords_tuple],
+                cluster_atoms_shape,
                 'cluster_atoms',
             )
-            self.data[cluster_mask_map[cluster_coords_tuple]] = cluster_atoms
+            self.data[cluster_mask] = cluster_atoms
 
         for var in shared_variables:
             destroy_shared_variable(var)
