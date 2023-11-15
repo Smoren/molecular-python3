@@ -67,7 +67,7 @@ class Storage:
 
             tasks_data.append((cluster_coords_tuple, cluster_atoms.shape, neighbour_atoms.shape))
 
-        task_results = self._pool.starmap(self._interact_step, tasks_data)
+        task_results = self._pool.starmap(self._interact_cluster, tasks_data)
         for task_result in task_results:
             cluster_coords_tuple, shm1, shm2 = task_result
             cluster_mask, cluster_atoms_shape = cluster_params_map[cluster_coords_tuple]
@@ -95,7 +95,7 @@ class Storage:
         self.data[:, AtomField.CLUSTER_Y] = np.floor(self.data[:, AtomField.Y] / self._cluster_size)
 
     @staticmethod
-    def _interact_step(
+    def _interact_cluster(
         cluster_coords: Tuple[int, ...],
         cluster_atoms_shape: Tuple[int, ...],
         neighbour_atoms_shape: Tuple[int, ...],
