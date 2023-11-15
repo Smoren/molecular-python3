@@ -8,7 +8,11 @@ def create_shared_variable_for_cluster(cluster_coords: Tuple[int, ...], data: np
     cluster_name = f'{name_prefix}_{str(cluster_coords)}'
     shared_var_size = np.dtype(np.float64).itemsize * np.prod(data.shape)
 
-    shm = shared_memory.SharedMemory(create=True, size=shared_var_size, name=cluster_name)
+    try:
+        shm = shared_memory.SharedMemory(create=True, size=shared_var_size, name=cluster_name)
+    except FileExistsError:
+        destroy_shared_variable(cluster_name)
+        shm = shared_memory.SharedMemory(create=True, size=shared_var_size, name=cluster_name)
     dst = np.ndarray(shape=data.shape, dtype=np.float64, buffer=shm.buf)
     dst[:] = data[:]
 
