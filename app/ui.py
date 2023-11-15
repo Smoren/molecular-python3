@@ -1,3 +1,4 @@
+import time
 from typing import Tuple
 
 import pygame
@@ -26,10 +27,12 @@ class Ui:
                 if event.type == pygame.QUIT:
                     self.stop()
 
-            self._storage.interact()
+            ts = time.time_ns()
             self._storage.move()
+            self._storage.interact()
             self.display()
             self._clock.tick(30)
+            print(f'step spent: {(time.time_ns() - ts) / 1_000_000}')
 
     def stop(self):
         self._is_stopped = True

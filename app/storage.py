@@ -32,11 +32,54 @@ class Storage:
         ]).T
 
     def interact(self) -> None:
+        clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
+
+        for cluster_coords in clusters_coords:
+            cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
+            cluster_mask = (self.data[:, AtomField.CLUSTER_X] == cluster_x) & \
+                           (self.data[:, AtomField.CLUSTER_Y] == cluster_y)
+            neighbours_mask = (self.data[:, AtomField.CLUSTER_X] >= cluster_x - 1) & \
+                              (self.data[:, AtomField.CLUSTER_X] <= cluster_x + 1) & \
+                              (self.data[:, AtomField.CLUSTER_Y] >= cluster_y - 1) & \
+                              (self.data[:, AtomField.CLUSTER_Y] <= cluster_y + 1)
+            cluster_atoms = self.data[cluster_mask]
+            neighbour_atoms = self.data[neighbours_mask]
+
+            for atom in cluster_atoms:
+                d = np.array([
+                    neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
+                    neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
+                ).T
+
+                l = np.linalg.norm(d, axis=1)
+
+                du = (d.T / l).T
+                du[np.isnan(du)] = 0
+
+                dv = (du.T / l).T
+                dv[np.isnan(dv)] = 0
+                dv = np.sum(dv, axis=0) * 4
+
+                atom[AtomField.VX] += dv[0]
+                atom[AtomField.VY] += dv[1]
+
         for atom in self.data:
+            cluster_x = atom[AtomField.CLUSTER_X]
+            cluster_y = atom[AtomField.CLUSTER_Y]
+            neighbours_mask = (self.data[:, AtomField.CLUSTER_X] >= cluster_x - 1) & \
+                (self.data[:, AtomField.CLUSTER_X] <= cluster_x + 1) & \
+                (self.data[:, AtomField.CLUSTER_Y] >= cluster_y - 1) & \
+                (self.data[:, AtomField.CLUSTER_Y] <= cluster_y + 1)
+
             d = np.array([
-                self.data[:, AtomField.X] - atom[AtomField.X],
-                self.data[:, AtomField.Y] - atom[AtomField.Y]]
+                self.data[neighbours_mask, AtomField.X] - atom[AtomField.X],
+                self.data[neighbours_mask, AtomField.Y] - atom[AtomField.Y]]
             ).T
+
+            # d = np.array([
+            #     self.data[:, AtomField.X] - atom[AtomField.X],
+            #     self.data[:, AtomField.Y] - atom[AtomField.Y]]
+            # ).T
 
             l = np.linalg.norm(d, axis=1)
 
