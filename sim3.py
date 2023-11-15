@@ -15,7 +15,7 @@ class Atom:
     cluster_coords: Tuple[int, int] | None = None
 
     def get_mass(self):
-        return math.pi * self.radius**2
+        return math.pi * self.radius * self.radius
 
     def __init__(self, x: int, y: int, vx: int, vy: int, radius: int):
         self.x = x
@@ -67,14 +67,14 @@ def step(screen: pygame.Surface, atoms: List[Atom], clusters: Dict[Tuple[int, in
                         if dist < radius_sum:
                             delta_x = -rhs.x + lhs.x
                             delta_y = -rhs.y + lhs.y
-                            a = 0.01 * rhs.get_mass() / dist ** 2
+                            a = 0.01 * rhs.get_mass() / dist / dist
 
                             lhs.vx += delta_x * (radius_sum - dist) * a
                             lhs.vy += delta_y * (radius_sum - dist) * a
                         else:
                             delta_x = rhs.x - lhs.x
                             delta_y = rhs.y - lhs.y
-                            a = 2 * rhs.get_mass() / dist ** 2
+                            a = 2 * rhs.get_mass() / dist / dist
 
                             lhs.vx += delta_x / dist * a
                             lhs.vy += delta_y / dist * a
