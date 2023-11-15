@@ -3,6 +3,8 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
+import ray
+
 
 class AtomField:
     X = 0
@@ -18,12 +20,12 @@ class Storage:
     data: np.ndarray
     _max_coord: Tuple[int, int]
     _cluster_size: int
-    _pool: mp.Pool
+    _num_workers: int = 20
 
     def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
+        ray.init(num_cpus=self._num_workers)
         self._max_coord = max_coord
         self._cluster_size = cluster_size
-        self._pool = mp.Pool(processes=20)
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
@@ -38,6 +40,7 @@ class Storage:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
         tasks_data = []
+        futures = []
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -51,11 +54,12 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
-            # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
+            # self.data[cluster_mask], _ = self._interact_cluster(cluster_atoms, neighbour_atoms, cluster_mask)
+            futures.append(self._interact_cluster.remote(
+                ray.put(cluster_atoms), ray.put(neighbour_atoms), ray.put(cluster_mask)
+            ))
 
-        task_results = self._pool.starmap(self._interact_cluster, tasks_data)
-        for task_result in task_results:
+        for task_result in ray.get(futures):
             cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask] = cluster_atoms
 
@@ -73,8 +77,11 @@ class Storage:
         self.data[:, AtomField.CLUSTER_Y] = np.floor(self.data[:, AtomField.Y] / self._cluster_size)
 
     @staticmethod
+    @ray.remote
     def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
-        for atom in cluster_atoms:
+        # result = np.zeros(shape=cluster_atoms.shape, dtype=np.float64)
+        cluster_atoms = np.copy(cluster_atoms)
+        for i, atom in enumerate(cluster_atoms):
             d = np.array([
                 neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
                 neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
@@ -89,7 +96,12 @@ class Storage:
             dv[np.isnan(dv)] = 0
             dv = np.sum(dv, axis=0) * 4
 
+            # result[i] = atom[:]
+            # result[i, AtomField.VX] += dv[0]
+            # result[i, AtomField.VY] += dv[1]
+
             atom[AtomField.VX] += dv[0]
             atom[AtomField.VY] += dv[1]
 
+        # return result, cluster_mask
         return cluster_atoms, cluster_mask
