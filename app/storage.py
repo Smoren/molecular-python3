@@ -34,7 +34,8 @@ class Storage:
             np.repeat(0, size),
         ]).T
 
-    def interact_step(self, cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray) -> np.ndarray:
+    @staticmethod
+    def interact_step(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray) -> np.ndarray:
         for atom in cluster_atoms:
             d = np.array([
                 neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
