@@ -60,7 +60,8 @@ def step(screen: pygame.Surface, atoms: List[Atom], clusters: Dict[Tuple[int, in
                         if lhs == rhs:
                             continue
 
-                        dist = np.linalg.norm(np.array([lhs.x - rhs.x, lhs.y - rhs.y]))
+                        dx, dy = lhs.x - rhs.x, lhs.y - rhs.y
+                        dist = math.sqrt(dx*dx + dy*dy)
                         radius_sum = lhs.radius + rhs.radius
 
                         if dist < radius_sum:

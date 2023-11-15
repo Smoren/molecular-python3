@@ -38,7 +38,8 @@ def step(screen: pygame.Surface, atoms: List[Atom]) -> None:
             if lhs == rhs:
                 continue
 
-            dist = np.linalg.norm(np.array([lhs.x - rhs.x, lhs.y - rhs.y]))
+            dx, dy = lhs.x - rhs.x, lhs.y - rhs.y
+            dist = math.sqrt(dx * dx + dy * dy)
             radius_sum = lhs.radius + rhs.radius
 
             if dist < radius_sum:
@@ -73,7 +74,7 @@ def generate_atoms(atoms_count: int, window_size: Tuple[int, int]) -> List[Atom]
         y = np.random.randint(low=0, high=window_size[1])
         vx = np.random.randint(low=-10, high=10)
         vy = np.random.randint(low=-10, high=10)
-        radius = np.random.randint(low=5, high=25)
+        radius = np.random.randint(low=5, high=10)
         atoms.append(Atom(x, y, vx, vy, radius))
 
     return atoms
@@ -81,7 +82,7 @@ def generate_atoms(atoms_count: int, window_size: Tuple[int, int]) -> List[Atom]
 
 if __name__ == '__main__':
     window_size = (1900, 1000)
-    atoms_count = 1000
+    atoms_count = 500
     atoms = generate_atoms(atoms_count, window_size)
     screen = pygame.display.set_mode(window_size)
     clock = pygame.time.Clock()
