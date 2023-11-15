@@ -3,6 +3,8 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
+from numba import jit
+
 
 class AtomField:
     X = 0
@@ -74,12 +76,10 @@ class Storage:
 
     @staticmethod
     def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
-        for atom in cluster_atoms:
-            d = np.array([
-                neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
-                neighbour_atoms[:, AtomField.Y] - atom[AtomField.Y]]
-            ).T
+        _x, _y, _vx, _vy = 0, 1, 2, 3
 
+        for atom in cluster_atoms:
+            d = neighbour_atoms[:, [_x, _y]] - atom[[_x, _y]]
             l = np.linalg.norm(d, axis=1)
 
             du = (d.T / l).T
@@ -89,7 +89,7 @@ class Storage:
             dv[np.isnan(dv)] = 0
             dv = np.sum(dv, axis=0) * 4
 
-            atom[AtomField.VX] += dv[0]
-            atom[AtomField.VY] += dv[1]
+            atom[_vx] += dv[_x]
+            atom[_vy] += dv[_y]
 
         return cluster_atoms, cluster_mask
