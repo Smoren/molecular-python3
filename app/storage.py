@@ -41,7 +41,6 @@ class Storage:
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
-            cluster_coords_tuple = (cluster_x, cluster_y)
 
             cluster_mask = (self.data[:, AtomField.CLUSTER_X] == cluster_x) & \
                            (self.data[:, AtomField.CLUSTER_Y] == cluster_y)
@@ -75,7 +74,6 @@ class Storage:
 
     @staticmethod
     def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
-        # shm = shared_memory.SharedMemory(name=name)
         for atom in cluster_atoms:
             d = np.array([
                 neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
