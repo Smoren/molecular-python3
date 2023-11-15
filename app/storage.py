@@ -65,9 +65,12 @@ class Storage:
 
         tasks_data = []
         shared_variable_names = []
+        cluster_masks_map = dict()
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
+            cluster_coords_tuple = (cluster_x, cluster_y)
+
             cluster_mask = (self.data[:, AtomField.CLUSTER_X] == cluster_x) & \
                            (self.data[:, AtomField.CLUSTER_Y] == cluster_y)
             neighbours_mask = (self.data[:, AtomField.CLUSTER_X] >= cluster_x - 1) & \
@@ -77,11 +80,13 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
+            cluster_masks_map[cluster_coords_tuple] = cluster_mask
+
             shared_variable_names.append(
-                create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster')
+                create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster_atoms')
             )
             shared_variable_names.append(
-                create_shared_variable_for_cluster(cluster_coords, neighbour_atoms, 'neighbors')
+                create_shared_variable_for_cluster(cluster_coords, neighbour_atoms, 'neighbour_atoms')
             )
 
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
