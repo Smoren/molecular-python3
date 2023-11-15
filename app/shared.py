@@ -15,9 +15,12 @@ def create_shared_variable_for_cluster(cluster_coords: Tuple[int, ...], data: np
     return cluster_name
 
 
-def get_shared_variable(name: str, shape: Tuple[int, ...]) -> np.ndarray:
-    shm = shared_memory.SharedMemory(name=name)
+def get_shared_variable(cluster_coords: Tuple[int, ...], shape: Tuple[int, ...], name_prefix: str) -> np.ndarray:
+    cluster_name = f'{name_prefix}_{str(cluster_coords)}'
+
+    shm = shared_memory.SharedMemory(name=cluster_name)
     data = np.ndarray(shape, dtype=np.float64, buffer=shm.buf)
+
     return data
 
 

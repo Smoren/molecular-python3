@@ -65,7 +65,7 @@ class Storage:
 
         tasks_data = []
         shared_variable_names = []
-        cluster_params_map = dict()
+        cluster_mask_map = dict()
 
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -80,7 +80,7 @@ class Storage:
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
 
-            cluster_params_map[cluster_coords_tuple] = cluster_mask, cluster_atoms.shape, neighbour_atoms.shape
+            cluster_mask_map[cluster_coords_tuple] = cluster_mask
 
             shared_variable_names.append(
                 create_shared_variable_for_cluster(cluster_coords, cluster_atoms, 'cluster_atoms')
@@ -89,6 +89,7 @@ class Storage:
                 create_shared_variable_for_cluster(cluster_coords, neighbour_atoms, 'neighbour_atoms')
             )
 
+            # tasks_data.append((clusters_coords, cluster_atoms.shape, neighbour_atoms.shape))
             tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
             # self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
