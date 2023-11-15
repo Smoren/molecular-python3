@@ -35,7 +35,7 @@ class Storage:
         ]).T
 
     @staticmethod
-    def interact_step(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray) -> np.ndarray:
+    def interact_step(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
         for atom in cluster_atoms:
             d = np.array([
                 neighbour_atoms[:, AtomField.X] - atom[AtomField.X],
@@ -54,7 +54,7 @@ class Storage:
             atom[AtomField.VX] += dv[0]
             atom[AtomField.VY] += dv[1]
 
-        return cluster_atoms
+        return cluster_atoms, cluster_mask
 
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
@@ -76,7 +76,7 @@ class Storage:
             # self.data[cluster_mask] = self.interact_step(cluster_atoms, neighbour_atoms)
 
         for cluster_atoms, neighbour_atoms, cluster_mask in tasks_data:
-            self.data[cluster_mask] = self.interact_step(cluster_atoms, neighbour_atoms)
+            self.data[cluster_mask], _ = self.interact_step(cluster_atoms, neighbour_atoms, cluster_mask)
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
