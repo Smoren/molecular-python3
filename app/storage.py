@@ -82,11 +82,12 @@ class Storage:
             d = neighbour_atoms[:, [_x, _y]] - atom[[_x, _y]]
             l = np.linalg.norm(d, axis=1)
 
+            d = d[l != 0]
+            l = l[l != 0]
+
             du = (d.T / l).T
-            du[np.isnan(du)] = 0
 
             dv = (du.T / l).T
-            dv[np.isnan(dv)] = 0
             dv = np.sum(dv, axis=0) * 4
 
             atom[_vx] += dv[_x]
