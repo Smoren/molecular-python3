@@ -4,6 +4,8 @@ from typing import Tuple, List
 import numpy as np
 import pygame
 
+from utils import calc_speed_delta
+
 
 class Atom:
     x: int
@@ -24,13 +26,15 @@ class Atom:
 
 
 def step(screen: pygame.Surface, atoms: List[Atom]) -> None:
+    screen_width, screen_height = screen.get_width(), screen.get_height()
+
     for atom in atoms:
         atom.x += atom.vx
         atom.y += atom.vy
 
-        if atom.x < 0 or atom.x > screen.get_width():
+        if atom.x < 0 or atom.x > screen_width:
             atom.vx *= -1
-        if atom.y < 0 or atom.y > screen.get_height():
+        if atom.y < 0 or atom.y > screen_height:
             atom.vy *= -1
 
     for lhs in atoms:
@@ -38,24 +42,9 @@ def step(screen: pygame.Surface, atoms: List[Atom]) -> None:
             if lhs == rhs:
                 continue
 
-            dx, dy = lhs.x - rhs.x, lhs.y - rhs.y
-            dist = math.sqrt(dx * dx + dy * dy)
-            radius_sum = lhs.radius + rhs.radius
-
-            if dist < radius_sum:
-                delta_x = -rhs.x + lhs.x
-                delta_y = -rhs.y + lhs.y
-                a = 0.01 * rhs.get_mass() / dist / dist
-
-                lhs.vx += delta_x * (radius_sum - dist) * a
-                lhs.vy += delta_y * (radius_sum - dist) * a
-            else:
-                delta_x = rhs.x - lhs.x
-                delta_y = rhs.y - lhs.y
-                a = 2 * rhs.get_mass() / dist / dist
-
-                lhs.vx += delta_x / dist * a
-                lhs.vy += delta_y / dist * a
+            delta_vx, delta_vy = calc_speed_delta(lhs.x, rhs.x, lhs.y, rhs.y, lhs.radius, rhs.radius)
+            lhs.vx += delta_vx
+            lhs.vy += delta_vy
 
     screen.fill((0, 0, 0))
     for atom in atoms:

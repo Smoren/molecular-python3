@@ -3,7 +3,10 @@ from collections import defaultdict
 from typing import Tuple, List, Dict, Set
 
 import numpy as np
+import numba as nb
 import pygame
+
+from utils import calc_speed_delta
 
 
 class Atom:
@@ -46,8 +49,8 @@ def step(screen: pygame.Surface, atoms: List[Atom], clusters: Dict[Tuple[int, in
     for cluster_coords in clusters:
         cluster = clusters[cluster_coords]
         for lhs in cluster:
-            for i in range(-1, 2):
-                for j in range(-1, 2):
+            for i in nb.prange(-1, 2):
+                for j in nb.prange(-1, 2):
                     neighbour_cluster_coords = (
                         cluster_coords[0] + i,
                         cluster_coords[1] + j,
@@ -60,24 +63,9 @@ def step(screen: pygame.Surface, atoms: List[Atom], clusters: Dict[Tuple[int, in
                         if lhs == rhs:
                             continue
 
-                        dx, dy = lhs.x - rhs.x, lhs.y - rhs.y
-                        dist = math.sqrt(dx*dx + dy*dy)
-                        radius_sum = lhs.radius + rhs.radius
-
-                        if dist < radius_sum:
-                            delta_x = -rhs.x + lhs.x
-                            delta_y = -rhs.y + lhs.y
-                            a = 0.01 * rhs.get_mass() / dist / dist
-
-                            lhs.vx += delta_x * (radius_sum - dist) * a
-                            lhs.vy += delta_y * (radius_sum - dist) * a
-                        else:
-                            delta_x = rhs.x - lhs.x
-                            delta_y = rhs.y - lhs.y
-                            a = 2 * rhs.get_mass() / dist / dist
-
-                            lhs.vx += delta_x / dist * a
-                            lhs.vy += delta_y / dist * a
+                        delta_vx, delta_vy = calc_speed_delta(lhs.x, rhs.x, lhs.y, rhs.y, lhs.radius, rhs.radius)
+                        lhs.vx += delta_vx
+                        lhs.vy += delta_vy
 
     screen.fill((0, 0, 0))
     for atom in atoms:
