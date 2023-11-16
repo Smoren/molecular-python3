@@ -2,8 +2,9 @@ from typing import Tuple
 
 import numpy as np
 import multiprocessing as mp
+import numba as nb
 
-from app.tools import clusterize_tasks
+from app.utils import clusterize_tasks, handle_delta_speed
 
 
 class AtomField:
@@ -37,9 +38,9 @@ class Storage:
         ], dtype=np.float64).T
 
     def interact(self) -> None:
-        tasks_data = clusterize_tasks(self.data)
+        clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
-        for task_data in tasks_data:
+        for task_data in clusterize_tasks(self.data, clusters_coords):
             cluster_atoms, neighbour_atoms, cluster_mask = task_data
             self.data[cluster_mask], _ = self._interact_cluster(cluster_atoms, neighbour_atoms, cluster_mask)
 
@@ -64,13 +65,8 @@ class Storage:
             mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
             d = neighbour_atoms[mask][:, [_x, _y]] - atom[[_x, _y]]
             l = np.linalg.norm(d, axis=1)
-
-            du = (d.T / l).T
-
-            dv = (du.T / l).T
-            dv = np.sum(dv, axis=0) * 4
-
-            atom[_vx] += dv[_x]
-            atom[_vy] += dv[_y]
+            dv_x, dv_y = handle_delta_speed(d, l)
+            atom[_vx] += dv_x
+            atom[_vy] += dv_y
 
         return cluster_atoms, cluster_mask
