@@ -11,7 +11,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
         np.random.randint(low=-10, high=10, size=size).astype('float'),
         np.random.randint(low=-10, high=10, size=size).astype('float'),
-        np.repeat(1, size).astype('float'),
+        np.repeat(3, size).astype('float'),
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         np.random.randint(low=0, high=len(CONF_COLORS), size=size).astype('float'),

@@ -5,7 +5,8 @@ import numpy as np
 import pygame
 import numba as nb
 
-from app.constants import COL_R, COL_Y, COL_X, COL_CX, COL_CY
+from app.config import CONF_COLORS
+from app.constants import COL_R, COL_Y, COL_X, COL_CX, COL_CY, COL_TYPE
 from app.drawer import Drawer
 from app.utils import interact_all, apply_speed
 
@@ -63,7 +64,7 @@ class Simulation:
 
         for i in nb.prange(self._atoms.shape[0]):
             row = self._atoms[i]
-            self._drawer.draw_circle((row[COL_X], row[COL_Y]), row[COL_R], (0, 0, 255))
+            self._drawer.draw_circle((row[COL_X], row[COL_Y]), row[COL_R], CONF_COLORS[int(row[COL_TYPE])])
             i += 1
             if i > 10000:
                 break
