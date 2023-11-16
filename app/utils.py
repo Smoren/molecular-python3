@@ -6,6 +6,7 @@ import numba as nb
     (nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:]))(nb.float64[:, :], nb.float64[:])),
     fastmath=True,
     nopython=True,
+    cache=True,
 )
 def get_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     _cx, _cy = 5, 6
@@ -24,15 +25,18 @@ def get_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
 @nb.jit(
     (nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:])))(nb.float64[:, :], nb.float64[:, :])),
     fastmath=True,
-    nopython=True
+    nopython=True,
+    cache=True,
 )
 def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     return [get_task_data(data, cluster_coords) for cluster_coords in clusters_coords]
 
 
 @nb.jit(
+    (nb.types.Tuple((nb.float64, nb.float64))(nb.float64[:, :], nb.float64[:])),
     fastmath=True,
-    nopython=True
+    nopython=True,
+    cache=True,
 )
 def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     _x, _y, _vx, _vy = 0, 1, 2, 3

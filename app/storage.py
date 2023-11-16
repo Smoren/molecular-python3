@@ -2,7 +2,6 @@ from typing import Tuple
 
 import numpy as np
 import multiprocessing as mp
-import numba as nb
 
 from app.utils import clusterize_tasks, handle_delta_speed
 
