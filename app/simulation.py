@@ -44,6 +44,7 @@ class Simulation:
         fastmath=True,
         looplift=True,
         boundscheck=False,
+        parallel=True,
     )
     def display(self) -> None:
         self._drawer.clear()
