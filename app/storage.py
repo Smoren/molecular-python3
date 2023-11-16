@@ -3,17 +3,8 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
-from app.utils import clusterize_tasks, handle_delta_speed, interact_cluster, interact_all
-
-
-class AtomField:
-    X = 0
-    Y = 1
-    VX = 2
-    VY = 3
-    RADIUS = 4
-    CLUSTER_X = 5
-    CLUSTER_Y = 6
+from app.constants import COL_X, COL_Y, COL_VX, COL_VY, COL_CY, COL_CX
+from app.utils import handle_delta_speed, interact_all
 
 
 class Storage:
@@ -31,7 +22,7 @@ class Storage:
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
             np.random.randint(low=-10, high=10, size=size).astype('float'),
             np.random.randint(low=-10, high=10, size=size).astype('float'),
-            np.repeat(5, size),
+            np.repeat(1, size),
             np.repeat(0, size),
             np.repeat(0, size),
         ], dtype=np.float64).T
@@ -42,25 +33,18 @@ class Storage:
         clusters_coords = np.unique(self.data[:, coords_columns], axis=0)
         interact_all(self.data, clusters_coords)
 
-        # clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
-        #
-        # task_results = self._pool.starmap(interact_cluster, clusterize_tasks(self.data, clusters_coords))
-        # for task_result in task_results:
-        #     cluster_atoms, cluster_mask = task_result
-        #     self.data[cluster_mask] = cluster_atoms
-
     def move(self) -> None:
-        self.data[:, AtomField.X] += self.data[:, AtomField.VX]
-        self.data[:, AtomField.Y] += self.data[:, AtomField.VY]
+        self.data[:, COL_X] += self.data[:, COL_VX]
+        self.data[:, COL_Y] += self.data[:, COL_VY]
 
-        self.data[self.data[:, AtomField.X] < 0, AtomField.VX] += 10
-        self.data[self.data[:, AtomField.Y] < 0, AtomField.VY] += 10
+        self.data[self.data[:, COL_X] < 0, COL_VX] += 10
+        self.data[self.data[:, COL_Y] < 0, COL_VY] += 10
 
-        self.data[self.data[:, AtomField.X] > self._max_coord[0], AtomField.VX] -= 10
-        self.data[self.data[:, AtomField.Y] > self._max_coord[1], AtomField.VY] -= 10
+        self.data[self.data[:, COL_X] > self._max_coord[0], COL_VX] -= 10
+        self.data[self.data[:, COL_Y] > self._max_coord[1], COL_VY] -= 10
 
-        self.data[:, AtomField.CLUSTER_X] = np.floor(self.data[:, AtomField.X] / self._cluster_size)
-        self.data[:, AtomField.CLUSTER_Y] = np.floor(self.data[:, AtomField.Y] / self._cluster_size)
+        self.data[:, COL_CX] = np.floor(self.data[:, COL_X] / self._cluster_size)
+        self.data[:, COL_CY] = np.floor(self.data[:, COL_Y] / self._cluster_size)
 
     @staticmethod
     def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):

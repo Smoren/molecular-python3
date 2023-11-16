@@ -3,11 +3,12 @@ from typing import Tuple
 
 import pygame
 
+from app.constants import COL_R, COL_Y, COL_X
 from app.drawer import Drawer
-from app.storage import Storage, AtomField
+from app.storage import Storage
 
 
-class Ui:
+class Simulation:
     _screen: pygame.Surface
     _drawer: Drawer
     _clock: pygame.time.Clock
@@ -41,11 +42,9 @@ class Ui:
         self._drawer.clear()
 
         for i, row in enumerate(self._storage.data):
-            self._drawer.draw_circle((row[AtomField.X], row[AtomField.Y]), row[AtomField.RADIUS], (0, 0, 255))
+            self._drawer.draw_circle((row[COL_X], row[COL_Y]), row[COL_R], (0, 0, 255))
             i += 1
             if i > 10000:
                 break
 
-        # self._drawer.draw_circle((250+random.randint(0, 10), 250), 75, (0, 0, 255))
-        # self._drawer.draw_line((250, 250), (250, 400), (0, 0, 255))
         self._drawer.update()

@@ -1,0 +1,7 @@
+COL_X = 0
+COL_Y = 1
+COL_VX = 2
+COL_VY = 3
+COL_R = 4
+COL_CX = 5
+COL_CY = 6

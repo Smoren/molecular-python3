@@ -1,6 +1,7 @@
 import numpy as np
 import numba as nb
-import scipy as sp
+
+from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY
 
 
 @nb.jit(
@@ -10,15 +11,14 @@ import scipy as sp
     cache=True,
 )
 def get_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
-    _cx, _cy = 5, 6
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
-    cluster_mask = (data[:, _cx] == cluster_x) & \
-                   (data[:, _cy] == cluster_y)
-    neighbours_mask = (data[:, _cx] >= cluster_x - 1) & \
-                      (data[:, _cx] <= cluster_x + 1) & \
-                      (data[:, _cy] >= cluster_y - 1) & \
-                      (data[:, _cy] <= cluster_y + 1)
+    cluster_mask = (data[:, COL_CX] == cluster_x) & \
+                   (data[:, COL_CY] == cluster_y)
+    neighbours_mask = (data[:, COL_CX] >= cluster_x - 1) & \
+                      (data[:, COL_CX] <= cluster_x + 1) & \
+                      (data[:, COL_CY] >= cluster_y - 1) & \
+                      (data[:, COL_CY] <= cluster_y + 1)
 
     return data[cluster_mask], data[neighbours_mask], cluster_mask
 
@@ -40,14 +40,11 @@ def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     cache=True,
 )
 def handle_delta_speed(d: np.ndarray, l: np.ndarray):
-    _x, _y, _vx, _vy = 0, 1, 2, 3
-
     du = (d.T / l).T
-
     dv = (du.T / l).T
     dv = np.sum(dv, axis=0) * 4
 
-    return dv[_x], dv[_y]
+    return dv[COL_X], dv[COL_Y]
 
 
 @nb.jit(
@@ -58,17 +55,16 @@ def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     looplift=True,
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
-        _x, _y, _vx, _vy = 0, 1, 2, 3
-        coords_columns = np.array([_x, _y])
+        coords_columns = np.array([COL_X, COL_Y])
 
         for i in nb.prange(cluster_atoms.shape[0]):
             atom = cluster_atoms[i]
-            mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
+            mask = (neighbour_atoms[:, COL_X] != atom[COL_X]) | (neighbour_atoms[:, COL_Y] != atom[COL_Y])
             d = neighbour_atoms[mask][:, coords_columns] - atom[coords_columns]
             l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
             dv_x, dv_y = handle_delta_speed(d, l)
-            atom[_vx] += dv_x
-            atom[_vy] += dv_y
+            atom[COL_VX] += dv_x
+            atom[COL_VY] += dv_y
 
         return cluster_atoms, cluster_mask
 
