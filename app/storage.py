@@ -39,6 +39,7 @@ class Storage:
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
+        tasks_data = []
         for cluster_coords in clusters_coords:
             cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
@@ -50,7 +51,10 @@ class Storage:
                               (self.data[:, AtomField.CLUSTER_Y] <= cluster_y + 1)
             cluster_atoms = self.data[cluster_mask]
             neighbour_atoms = self.data[neighbours_mask]
+            tasks_data.append((cluster_atoms, neighbour_atoms, cluster_mask))
 
+        for task_data in tasks_data:
+            cluster_atoms, neighbour_atoms, cluster_mask = task_data
             self.data[cluster_mask], _ = self._interact_cluster(cluster_atoms, neighbour_atoms, cluster_mask)
 
     def move(self) -> None:
