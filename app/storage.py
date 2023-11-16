@@ -1,7 +1,6 @@
 from typing import Tuple
 
 import numpy as np
-import multiprocessing as mp
 
 from app.utils import interact_all, apply_speed
 
