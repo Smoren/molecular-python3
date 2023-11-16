@@ -5,3 +5,4 @@ COL_VY = 3
 COL_R = 4
 COL_CX = 5
 COL_CY = 6
+COL_TYPE = 7
