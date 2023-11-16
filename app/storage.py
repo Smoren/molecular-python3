@@ -45,17 +45,3 @@ class Storage:
 
         self.data[:, COL_CX] = np.floor(self.data[:, COL_X] / self._cluster_size)
         self.data[:, COL_CY] = np.floor(self.data[:, COL_Y] / self._cluster_size)
-
-    @staticmethod
-    def _interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask):
-        _x, _y, _vx, _vy = 0, 1, 2, 3
-
-        for atom in cluster_atoms:
-            mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
-            d = neighbour_atoms[mask][:, [_x, _y]] - atom[[_x, _y]]
-            l = np.linalg.norm(d, axis=1)
-            dv_x, dv_y = handle_delta_speed(d, l)
-            atom[_vx] += dv_x
-            atom[_vy] += dv_y
-
-        return cluster_atoms, cluster_mask
