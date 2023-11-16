@@ -40,9 +40,10 @@ class Storage:
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
-        for task_data in clusterize_tasks(self.data, clusters_coords):
-            cluster_atoms, neighbour_atoms, cluster_mask = task_data
-            self.data[cluster_mask], _ = self._interact_cluster(cluster_atoms, neighbour_atoms, cluster_mask)
+        task_results = self._pool.starmap(self._interact_cluster, clusterize_tasks(self.data, clusters_coords))
+        for task_result in task_results:
+            cluster_atoms, cluster_mask = task_result
+            self.data[cluster_mask] = cluster_atoms
 
     def move(self) -> None:
         self.data[:, AtomField.X] += self.data[:, AtomField.VX]
