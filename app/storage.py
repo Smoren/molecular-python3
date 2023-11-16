@@ -3,8 +3,7 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
-from app.constants import COL_X, COL_Y, COL_VX, COL_VY, COL_CY, COL_CX
-from app.utils import handle_delta_speed, interact_all, apply_speed
+from app.utils import interact_all, apply_speed
 
 
 class Storage:
