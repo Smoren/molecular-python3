@@ -88,3 +88,25 @@ def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
         task_data = tasks[i]
         cluster_atoms, cluster_mask = interact_cluster(*task_data)
         data[cluster_mask] = cluster_atoms
+
+
+@nb.jit(
+    # (nb.types.NoneType('none')(nb.float64[:, :], nb.int32[:], nb.int32)),
+    fastmath=True,
+    nopython=True,
+    cache=True,
+    looplift=True,
+    boundscheck=False,
+)
+def apply_speed(data: np.ndarray, max_coord: np.ndarray, cluster_size: int) -> None:
+    data[:, COL_X] += data[:, COL_VX]
+    data[:, COL_Y] += data[:, COL_VY]
+
+    data[data[:, COL_X] < 0, COL_VX] += 10
+    data[data[:, COL_Y] < 0, COL_VY] += 10
+
+    data[data[:, COL_X] > max_coord[0], COL_VX] -= 10
+    data[data[:, COL_Y] > max_coord[1], COL_VY] -= 10
+
+    data[:, COL_CX] = np.floor(data[:, COL_X] / cluster_size)
+    data[:, COL_CY] = np.floor(data[:, COL_Y] / cluster_size)
