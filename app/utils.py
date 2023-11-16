@@ -1,7 +1,7 @@
 import numpy as np
 import numba as nb
 
-from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE
+from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE, COL_R
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE
 
 
@@ -52,27 +52,37 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
             atom = cluster_atoms[i]
             mask_exclude_self = (neighbour_atoms[:, COL_X] != atom[COL_X]) | (neighbour_atoms[:, COL_Y] != atom[COL_Y])
 
-            neighbour_atoms_curr = neighbour_atoms[mask_exclude_self]
-            d = neighbour_atoms_curr[:, coords_columns] - atom[coords_columns]
+            neighbours = neighbour_atoms[mask_exclude_self]
+            d = neighbours[:, coords_columns] - atom[coords_columns]
             l2 = d[:, 0]**2 + d[:, 1]**2
             l = np.sqrt(l2)
 
             mask_in_radius = l <= CLUSTER_SIZE
-            neighbour_atoms_curr = neighbour_atoms_curr[mask_in_radius]
+            neighbours = neighbours[mask_in_radius]
             d = d[mask_in_radius]
-            l2 = l2[mask_in_radius]
             l = l[mask_in_radius]
 
-            mult = ATOMS_GRAVITY[int(atom[COL_TYPE]), neighbour_atoms_curr[:, COL_TYPE].astype(np.int64)]
+            mask_bounced = l < neighbours[:, COL_R] + atom[COL_R]
+            neighbours_nb = neighbours[~mask_bounced]
+            nb_d = d[~mask_bounced]
+            nb_l = l[~mask_bounced]
 
-            nd = (d.T / l).T
-            dv = (nd.T / l).T
-            # dv = (nd.T / l2).T
-            dv = (dv.T * mult).T
-            dv = np.sum(dv, axis=0) * 3
+            mult = ATOMS_GRAVITY[int(atom[COL_TYPE]), neighbours_nb[:, COL_TYPE].astype(np.int64)]
 
-            atom[COL_VX] += dv[0]
-            atom[COL_VY] += dv[1]
+            nb_nd = (nb_d.T / nb_l).T
+            nb_dv = (nb_nd.T / nb_l).T  # l2 вместо l ???
+            nb_dv = (nb_dv.T * mult).T
+            nb_dv = np.sum(nb_dv, axis=0) * 3  # TODO factor
+
+            b_d = d[mask_bounced]
+            b_l = l[mask_bounced]
+
+            b_nd = (b_d.T / b_l).T
+            b_dv = (b_nd.T / np.maximum(b_l, 2)).T  # TODO factor
+            b_dv = np.sum(b_dv, axis=0) * 0.5  # TODO factor
+
+            atom[COL_VX] += nb_dv[0] - b_dv[0]
+            atom[COL_VY] += nb_dv[1] - b_dv[1]
 
         return cluster_atoms, cluster_mask
 
@@ -121,8 +131,8 @@ def apply_speed(data: np.ndarray, max_coord: np.ndarray) -> None:
     data[mask_x_max, COL_X] = max_coord[0] - (data[mask_x_max, COL_X] - max_coord[0])
     data[mask_y_max, COL_Y] = max_coord[1] - (data[mask_y_max, COL_Y] - max_coord[1])
 
-    data[:, COL_VX] *= 0.7
-    data[:, COL_VY] *= 0.7
+    data[:, COL_VX] *= 0.98  # TODO factor
+    data[:, COL_VY] *= 0.98  # TODO factor
 
     data[:, COL_CX] = np.floor(data[:, COL_X] / CLUSTER_SIZE)
     data[:, COL_CY] = np.floor(data[:, COL_Y] / CLUSTER_SIZE)

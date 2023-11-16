@@ -1,8 +1,6 @@
+from app.config import ATOMS_COUNT, WINDOW_SIZE
 from app.factories import generate_atoms
 from app.simulation import Simulation
-
-ATOMS_COUNT = 3000
-WINDOW_SIZE = (1900, 1000)
 
 atoms = generate_atoms(ATOMS_COUNT, WINDOW_SIZE)
 
