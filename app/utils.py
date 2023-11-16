@@ -82,7 +82,7 @@ def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
 
 
 @nb.jit(
-    # (nb.types.NoneType('none')(nb.float64[:, :], nb.int32[:], nb.int32)),
+    (nb.types.NoneType('none')(nb.float64[:, :], nb.int64[:], nb.int64)),
     fastmath=True,
     nopython=True,
     cache=True,

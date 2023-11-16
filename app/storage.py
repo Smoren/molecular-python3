@@ -10,12 +10,10 @@ class Storage:
     data: np.ndarray
     _max_coord: np.ndarray
     _cluster_size: int
-    _pool: mp.Pool
 
     def __init__(self, size: int, max_coord: Tuple[int, int], cluster_size: int):
         self._max_coord = np.array(max_coord)
         self._cluster_size = cluster_size
-        self._pool = mp.Pool(processes=20)
         self.data = np.array([
             np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
             np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
