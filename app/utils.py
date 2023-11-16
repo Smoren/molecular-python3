@@ -9,6 +9,7 @@ from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY
     fastmath=True,
     nopython=True,
     cache=True,
+    boundscheck=False,
 )
 def get_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -28,6 +29,7 @@ def get_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     fastmath=True,
     nopython=True,
     cache=True,
+    boundscheck=False,
 )
 def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     return [get_task_data(data, cluster_coords) for cluster_coords in clusters_coords]
@@ -38,6 +40,7 @@ def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     fastmath=True,
     nopython=True,
     cache=True,
+    boundscheck=False,
 )
 def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     du = (d.T / l).T
@@ -53,6 +56,7 @@ def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     nopython=True,
     cache=True,
     looplift=True,
+    boundscheck=False,
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
         coords_columns = np.array([COL_X, COL_Y])
@@ -75,6 +79,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
     nopython=True,
     cache=True,
     looplift=True,
+    boundscheck=False,
     parallel=True,
 )
 def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:

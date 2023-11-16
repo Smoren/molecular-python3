@@ -2,6 +2,7 @@ import time
 from typing import Tuple
 
 import pygame
+import numba as nb
 
 from app.constants import COL_R, COL_Y, COL_X
 from app.drawer import Drawer
@@ -38,10 +39,17 @@ class Simulation:
     def stop(self):
         self._is_stopped = True
 
+    @nb.jit(
+        forceobj=True,
+        fastmath=True,
+        looplift=True,
+        boundscheck=False,
+    )
     def display(self) -> None:
         self._drawer.clear()
 
-        for i, row in enumerate(self._storage.data):
+        for i in nb.prange(self._storage.data.shape[0]):
+            row = self._storage.data[i]
             self._drawer.draw_circle((row[COL_X], row[COL_Y]), row[COL_R], (0, 0, 255))
             i += 1
             if i > 10000:
