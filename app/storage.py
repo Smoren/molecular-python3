@@ -2,6 +2,7 @@ from typing import Tuple
 
 import numpy as np
 
+from app.constants import COL_CY, COL_CX
 from app.utils import interact_all, apply_speed
 
 
@@ -24,9 +25,7 @@ class Storage:
         ], dtype=np.float64).T
 
     def interact(self) -> None:
-        _cx, _cy = 5, 6
-        coords_columns = np.array([_cx, _cy])
-        clusters_coords = np.unique(self.data[:, coords_columns], axis=0)
+        clusters_coords = np.unique(self.data[:, [COL_CX, COL_CY]], axis=0)
         interact_all(self.data, clusters_coords)
 
     def move(self) -> None:
