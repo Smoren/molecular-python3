@@ -32,17 +32,5 @@ class Storage:
         clusters_coords = np.unique(self.data[:, coords_columns], axis=0)
         interact_all(self.data, clusters_coords)
 
-
     def move(self) -> None:
         apply_speed(self.data, self._max_coord, self._cluster_size)
-        # self.data[:, COL_X] += self.data[:, COL_VX]
-        # self.data[:, COL_Y] += self.data[:, COL_VY]
-        #
-        # self.data[self.data[:, COL_X] < 0, COL_VX] += 10
-        # self.data[self.data[:, COL_Y] < 0, COL_VY] += 10
-        #
-        # self.data[self.data[:, COL_X] > self._max_coord[0], COL_VX] -= 10
-        # self.data[self.data[:, COL_Y] > self._max_coord[1], COL_VY] -= 10
-        #
-        # self.data[:, COL_CX] = np.floor(self.data[:, COL_X] / self._cluster_size)
-        # self.data[:, COL_CY] = np.floor(self.data[:, COL_Y] / self._cluster_size)
