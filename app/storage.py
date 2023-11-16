@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import multiprocessing as mp
 
-from app.utils import clusterize_tasks, handle_delta_speed
+from app.utils import clusterize_tasks, handle_delta_speed, interact_cluster
 
 
 class AtomField:
@@ -39,7 +39,11 @@ class Storage:
     def interact(self) -> None:
         clusters_coords = np.unique(self.data[:, [AtomField.CLUSTER_X, AtomField.CLUSTER_Y]], axis=0)
 
-        task_results = self._pool.starmap(self._interact_cluster, clusterize_tasks(self.data, clusters_coords))
+        # for task_data in clusterize_tasks(self.data, clusters_coords):
+        #     cluster_atoms, cluster_mask = interact_cluster(*task_data)
+        #     self.data[cluster_mask] = cluster_atoms
+
+        task_results = self._pool.starmap(interact_cluster, clusterize_tasks(self.data, clusters_coords))
         for task_result in task_results:
             cluster_atoms, cluster_mask = task_result
             self.data[cluster_mask] = cluster_atoms

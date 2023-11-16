@@ -1,5 +1,6 @@
 import numpy as np
 import numba as nb
+import scipy as sp
 
 
 @nb.jit(
@@ -47,3 +48,23 @@ def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     dv = np.sum(dv, axis=0) * 4
 
     return dv[_x], dv[_y]
+
+
+@nb.jit(
+    fastmath=True,
+    nopython=True,
+    cache=True,
+)
+def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
+        _x, _y, _vx, _vy = 0, 1, 2, 3
+        coords_columns = np.array([_x, _y])
+
+        for atom in cluster_atoms:
+            mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
+            d = neighbour_atoms[mask][:, coords_columns] - atom[coords_columns]
+            l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
+            dv_x, dv_y = handle_delta_speed(d, l)
+            atom[_vx] += dv_x
+            atom[_vy] += dv_y
+
+        return cluster_atoms, cluster_mask
