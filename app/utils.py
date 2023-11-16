@@ -55,12 +55,14 @@ def handle_delta_speed(d: np.ndarray, l: np.ndarray):
     fastmath=True,
     nopython=True,
     cache=True,
+    looplift=True,
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
         _x, _y, _vx, _vy = 0, 1, 2, 3
         coords_columns = np.array([_x, _y])
 
-        for atom in cluster_atoms:
+        for i in nb.prange(cluster_atoms.shape[0]):
+            atom = cluster_atoms[i]
             mask = (neighbour_atoms[:, _x] != atom[_x]) | (neighbour_atoms[:, _y] != atom[_y])
             d = neighbour_atoms[mask][:, coords_columns] - atom[coords_columns]
             l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
@@ -69,3 +71,19 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
             atom[_vy] += dv_y
 
         return cluster_atoms, cluster_mask
+
+
+@nb.jit(
+    (nb.types.NoneType('none')(nb.float64[:, :], nb.float64[:, :])),
+    fastmath=True,
+    nopython=True,
+    cache=True,
+    looplift=True,
+    parallel=True,
+)
+def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
+    tasks = clusterize_tasks(data, clusters_coords)
+    for i in nb.prange(len(tasks)):
+        task_data = tasks[i]
+        cluster_atoms, cluster_mask = interact_cluster(*task_data)
+        data[cluster_mask] = cluster_atoms
