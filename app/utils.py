@@ -51,7 +51,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
             atom = cluster_atoms[i]
             mask = (neighbour_atoms[:, COL_X] != atom[COL_X]) | (neighbour_atoms[:, COL_Y] != atom[COL_Y])
 
-            d = neighbour_atoms[mask][:, coords_columns] - atom[coords_columns]
+            neighbour_atoms = neighbour_atoms[mask]
+            d = neighbour_atoms[:, coords_columns] - atom[coords_columns]
             l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
 
             du = (d.T / l).T
