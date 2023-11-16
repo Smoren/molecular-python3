@@ -2,15 +2,15 @@ import numpy as np
 import numba as nb
 
 from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE, COL_R
-from app.config import ATOMS_GRAVITY, CLUSTER_SIZE
+from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
 
 
 @nb.jit(
     (nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:]))(nb.float64[:, :], nb.float64[:])),
     fastmath=True,
     nopython=True,
-    # cache=True,
     boundscheck=False,
+    cache=not MODE_DEBUG,
 )
 def get_cluster_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -29,9 +29,9 @@ def get_cluster_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple
     (nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:])))(nb.float64[:, :], nb.float64[:, :])),
     fastmath=True,
     nopython=True,
-    # cache=True,
     looplift=True,
     boundscheck=False,
+    cache=not MODE_DEBUG,
 )
 def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     return [get_cluster_task_data(data, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
@@ -41,46 +41,54 @@ def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
     (nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))(nb.float64[:, :], nb.float64[:, :], nb.boolean[:])),
     fastmath=True,
     nopython=True,
-    # cache=True,
     looplift=True,
     boundscheck=False,
+    cache=not MODE_DEBUG,
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
         coords_columns = np.array([COL_X, COL_Y])
 
         for i in nb.prange(cluster_atoms.shape[0]):
             atom = cluster_atoms[i]
-            mask_exclude_self = (neighbour_atoms[:, COL_X] != atom[COL_X]) | (neighbour_atoms[:, COL_Y] != atom[COL_Y])
 
+            # исключим саму частицу
+            mask_exclude_self = (neighbour_atoms[:, COL_X] != atom[COL_X]) | (neighbour_atoms[:, COL_Y] != atom[COL_Y])
             neighbours = neighbour_atoms[mask_exclude_self]
             d = neighbours[:, coords_columns] - atom[coords_columns]
             l2 = d[:, 0]**2 + d[:, 1]**2
             l = np.sqrt(l2)
 
+            # исключим слишком далекие атомы
             mask_in_radius = l <= CLUSTER_SIZE
             neighbours = neighbours[mask_in_radius]
             d = d[mask_in_radius]
             l = l[mask_in_radius]
 
+            # возьмем атомы, не столкнувшиеся с данным
             mask_bounced = l < neighbours[:, COL_R] + atom[COL_R]
             neighbours_nb = neighbours[~mask_bounced]
             nb_d = d[~mask_bounced]
             nb_l = l[~mask_bounced]
 
+            # получим множители гравитации согласно правилам взаимодействия частиц
             mult = ATOMS_GRAVITY[int(atom[COL_TYPE]), neighbours_nb[:, COL_TYPE].astype(np.int64)]
 
+            # найдем ускорение за счет сил гравитации/антигравитации
             nb_nd = (nb_d.T / nb_l).T
             nb_dv = (nb_nd.T / nb_l).T  # l2 вместо l ???
             nb_dv = (nb_dv.T * mult).T
             nb_dv = np.sum(nb_dv, axis=0) * 3  # TODO factor
 
+            # возьмем атомы, столкнувшиеся с данным
             b_d = d[mask_bounced]
             b_l = l[mask_bounced]
 
+            # найдем ускорение за счет сил упругости
             b_nd = (b_d.T / b_l).T
             b_dv = (b_nd.T / np.maximum(b_l, 2)).T  # TODO factor
             b_dv = np.sum(b_dv, axis=0) * 0.5  # TODO factor
 
+            # применим суммарное ускорение
             atom[COL_VX] += nb_dv[0] - b_dv[0]
             atom[COL_VY] += nb_dv[1] - b_dv[1]
 
@@ -91,10 +99,10 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
     (nb.types.NoneType('none')(nb.float64[:, :], nb.float64[:, :])),
     fastmath=True,
     nopython=True,
-    # cache=True,
     looplift=True,
     boundscheck=False,
     parallel=True,
+    cache=not MODE_DEBUG,
 )
 def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
     tasks = clusterize_tasks(data, clusters_coords)
@@ -108,9 +116,9 @@ def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
     (nb.types.NoneType('none')(nb.float64[:, :], nb.int64[:])),
     fastmath=True,
     nopython=True,
-    # cache=True,
     looplift=True,
     boundscheck=False,
+    cache=not MODE_DEBUG,
 )
 def apply_speed(data: np.ndarray, max_coord: np.ndarray) -> None:
     data[:, COL_X] += data[:, COL_VX]
