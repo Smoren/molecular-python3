@@ -51,6 +51,7 @@ def handle_delta_speed(d: np.ndarray, l: np.ndarray):
 
 
 @nb.jit(
+    (nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))(nb.float64[:, :], nb.float64[:, :], nb.boolean[:])),
     fastmath=True,
     nopython=True,
     cache=True,
