@@ -1,3 +1,5 @@
+from typing import List
+
 import numpy as np
 import numba as nb
 
@@ -19,13 +21,33 @@ def isin(a, b):
     return out
 
 
-@nb.jit(
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
+def concat(arrays: List[np.ndarray]) -> np.ndarray:
+    total_len = 0
+    for i in nb.prange(len(arrays)):
+        total_len += arrays[i].shape[0]
+
+    result = np.empty(shape=(total_len, arrays[0].shape[1]), dtype=arrays[0].dtype)
+
+    k = 0
+    for i in nb.prange(len(arrays)):
+        for j in nb.prange(arrays[i].shape[0]):
+            result[k] = arrays[i][j]
+            k += 1
+
+    return result
+
+
+@nb.njit(
     (
         nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
     ),
     fastmath=True,
-    nopython=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
@@ -48,13 +70,12 @@ def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: n
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
 
-@nb.jit(
+@nb.njit(
     (
         nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])))
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
     ),
     fastmath=True,
-    nopython=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
@@ -63,19 +84,19 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
     return [get_cluster_task_data(atoms, links, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
 
 
-@nb.jit(
+@nb.njit(
     (
         nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
     ),
     fastmath=True,
-    nopython=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
     coords_columns = np.array([A_COL_X, A_COL_Y])
+    new_links = []
 
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
@@ -134,20 +155,22 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
         # создадим новые связи с близкими атомами
         close_neighbours = not_linked_neighbours[nl_l < 30]
-        new_links = np.zeros(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
-        new_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
-        new_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
+        new_atom_links = np.empty(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
+        new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
+        new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
+        new_links.append(new_atom_links)
+
+    concat(new_links)
 
     return cluster_atoms, cluster_mask
 
 
-@nb.jit(
+@nb.njit(
     (
         nb.types.NoneType('none')
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
     ),
     fastmath=True,
-    nopython=True,
     looplift=True,
     boundscheck=False,
     parallel=True,
@@ -161,13 +184,12 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
         atoms[cluster_mask] = cluster_atoms
 
 
-@nb.jit(
+@nb.njit(
     (
         nb.types.NoneType('none')
         (nb.float64[:, :], nb.int64[:])
     ),
     fastmath=True,
-    nopython=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
