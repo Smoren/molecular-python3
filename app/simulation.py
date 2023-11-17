@@ -82,4 +82,7 @@ class Simulation:
         #     row = self._atoms[i]
         #     self._drawer.draw_circle(row[COL_X], row[COL_Y], row[COL_R], ATOMS_COLORS[int(row[COL_TYPE])])
 
+        # for lhs_idx, rhs_idx in self._links:
+        #     self._drawer.draw_line(self._atoms[lhs_idx, [COL_X, COL_Y]], self._atoms[rhs_idx, [COL_X, COL_Y]])
+
         self._drawer.update()
