@@ -25,7 +25,10 @@ def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: n
                       (data[:, COL_CY] >= cluster_y - 1) & \
                       (data[:, COL_CY] <= cluster_y + 1)
 
-    return data[cluster_mask], data[neighbours_mask], cluster_mask
+    cluster_atoms, neighbours_atoms = data[cluster_mask], data[neighbours_mask]
+    # link_indices = np.where(np.isin(links[:, 0], [1]))
+
+    return cluster_atoms, neighbours_atoms, cluster_mask
 
 
 @nb.jit(
