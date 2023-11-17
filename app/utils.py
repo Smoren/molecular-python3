@@ -154,7 +154,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         nl_l = l[~mask_linked]
 
         # создадим новые связи с близкими атомами
-        close_neighbours = not_linked_neighbours[nl_l < 30]
+        close_neighbours = not_linked_neighbours[nl_l < 20]  # TODO factor
         new_atom_links = np.empty(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
         new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
         new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
@@ -165,7 +165,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
 @nb.njit(
     (
-        nb.types.NoneType('none')
+        nb.int64[:, :]
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
     ),
     fastmath=True,
@@ -174,7 +174,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
     parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> None:
+def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
     tasks = clusterize_tasks(atoms, links, clusters_coords)
     new_links = [np.empty(shape=(0, 2), dtype=np.int64)] * len(tasks)
     for i in nb.prange(len(tasks)):
@@ -184,6 +184,11 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
         new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 2), dtype=np.int64)
         for j in nb.prange(cluster_new_links.shape[0]):
             new_links[i][j] = cluster_new_links[j]
+
+    # TODO удалить повторы
+    total_new_links = concat(new_links)
+    print(f'new links: {len(total_new_links)}')
+    return total_new_links
 
 
 @nb.njit(
