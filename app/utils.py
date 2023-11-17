@@ -1,7 +1,7 @@
 import numpy as np
 import numba as nb
 
-from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE, COL_R
+from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE, COL_R, COL_ID
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
 
 
@@ -26,6 +26,8 @@ def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: n
                       (data[:, COL_CY] <= cluster_y + 1)
 
     cluster_atoms, neighbours_atoms = data[cluster_mask], data[neighbours_mask]
+    # mask = np.isin(links[:, 0], cluster_atoms[:, COL_ID])
+    # links_filtered = links[np.isin(links[:, 0], cluster_atoms[:, COL_ID]) | np.isin(links[:, 1], cluster_atoms[:, COL_ID])]
     # link_indices = np.where(np.isin(links[:, 0], [1]))
 
     return cluster_atoms, neighbours_atoms, cluster_mask
