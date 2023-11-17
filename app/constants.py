@@ -1,8 +1,9 @@
-COL_X = 0
-COL_Y = 1
-COL_VX = 2
-COL_VY = 3
-COL_R = 4
-COL_CX = 5
-COL_CY = 6
-COL_TYPE = 7
+COL_ID = 0
+COL_X = 1
+COL_Y = 2
+COL_VX = 3
+COL_VY = 4
+COL_R = 5
+COL_CX = 6
+COL_CY = 7
+COL_TYPE = 8
