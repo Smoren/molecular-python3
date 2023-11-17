@@ -86,7 +86,7 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
 
 @nb.njit(
     (
-        nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
+        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
     ),
     fastmath=True,
@@ -160,9 +160,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
         new_links.append(new_atom_links)
 
-    concat(new_links)
-
-    return cluster_atoms, cluster_mask
+    return cluster_atoms, concat(new_links), cluster_mask
 
 
 @nb.njit(
@@ -178,10 +176,14 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 )
 def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> None:
     tasks = clusterize_tasks(atoms, links, clusters_coords)
+    new_links = [np.empty(shape=(0, 2), dtype=np.int64)] * len(tasks)
     for i in nb.prange(len(tasks)):
         task_data = tasks[i]
-        cluster_atoms, cluster_mask = interact_cluster(*task_data)
+        cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
         atoms[cluster_mask] = cluster_atoms
+        new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 2), dtype=np.int64)
+        for j in nb.prange(cluster_new_links.shape[0]):
+            new_links[i][j] = cluster_new_links[j]
 
 
 @nb.njit(
