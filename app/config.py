@@ -2,7 +2,7 @@ import numpy as np
 
 MODE_DEBUG = True
 
-ATOMS_COUNT = 10
+ATOMS_COUNT = 4
 WINDOW_SIZE = (100, 100)
 
 # ATOMS_COUNT = 7000

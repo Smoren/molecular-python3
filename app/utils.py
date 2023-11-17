@@ -8,19 +8,40 @@ from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
 
 
-@nb.njit
-def np_apply(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
+def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
     assert arr.ndim == 2
     assert axis in [0, 1]
     if axis == 0:
         result = np.empty(arr.shape[1])
-        for i in range(len(result)):
+        for i in nb.prange(len(result)):
             result[i] = func1d(arr[:, i])
     else:
         result = np.empty(arr.shape[0])
-        for i in range(len(result)):
+        for i in nb.prange(len(result)):
             result[i] = func1d(arr[i, :])
     return result
+
+
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
+def np_unique_links(arr: np.ndarray) -> np.ndarray:
+    assert arr.ndim == 2
+
+    if arr.shape[0] == 0:
+        return arr
+
+    result = set()
+    for i in nb.prange(arr.shape[0]):
+        result.add((arr[i, 0], arr[i, 1]))
+    return np.array(list(result))
 
 
 @nb.njit(
@@ -176,10 +197,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
         if new_atom_links.shape[0] > 0:
             new_atom_links[:, 0], new_atom_links[:, 1] \
-                = np_apply(new_atom_links, np.min, axis=1), np_apply(new_atom_links, np.max, axis=1)
+                = np_apply_reducer(new_atom_links, np.min, axis=1), np_apply_reducer(new_atom_links, np.max, axis=1)
             new_links.append(new_atom_links)
 
-    return cluster_atoms, concat(new_links, links.shape[1], np.int64), cluster_mask
+    new_links_total = np_unique_links(concat(new_links, links.shape[1], np.int64))
+
+    return cluster_atoms, new_links_total, cluster_mask
 
 
 @nb.njit(
@@ -204,10 +227,11 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
         for j in nb.prange(cluster_new_links.shape[0]):
             new_links[i][j] = cluster_new_links[j]
 
-    # TODO удалить повторы
-    total_new_links = concat(new_links, links.shape[1], np.int64)
+    total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
+
     if len(total_new_links) > 0:
         print(f'new links: {len(total_new_links)}')
+
     return total_new_links
 
 
