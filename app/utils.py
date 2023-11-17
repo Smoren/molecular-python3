@@ -1,4 +1,4 @@
-from typing import List, Callable
+from typing import List, Callable, Tuple
 
 import numpy as np
 import numba as nb
@@ -51,6 +51,7 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
 )
 def isin(a, b):
     out = np.empty(a.shape[0], dtype=nb.boolean)
+    # out = np.empty(a.shape[0], dtype=np.bool_)
     b = set(b)
     for i in nb.prange(a.shape[0]):
         out[i] = a[i] in b
@@ -163,6 +164,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _mask_bounced = neighbours_l < neighbours[:, A_COL_R] + atom[A_COL_R]
 
         ###############################
+        neighbours_bounced = neighbours[_mask_bounced]
         neighbours_bounced_d = neighbours_d[_mask_bounced]
         neighbours_bounced_l = neighbours_l[_mask_bounced]
         ###############################
@@ -190,7 +192,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 15  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < 25  # TODO factor
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -198,10 +200,10 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
         # [Найдем ускорение отталкивания атома от столкнувшихся с ним соседей]
         _d_norm = (neighbours_bounced_d.T / neighbours_bounced_l).T
-        _l_limited = np.maximum(neighbours_bounced_l, 2)  # TODO factor
+        _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = -np.sum((_d_norm.T / _l_limited).T, axis=0) * 0.5  # TODO factor
+        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.5 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -210,22 +212,21 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0.5  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 1  # TODO factor
         ###############################
 
-        # [Найдем ускорение гравитационных и связных взаимодействий атома со связанными соседями]
+        # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
         _mult = ATOMS_LINK_GRAVITY[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
-        _f = (_d_norm.T * neighbours_linked_l).T  # l2 вместо l ???
+        _f = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 0.03  # TODO factor
-        dv_link_influence = np.sum(_d_norm, axis=0) * 0.3  # TODO factor
+        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 1  # TODO factor
         ###############################
 
         # [Применим суммарное ускорение]
-        atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_link_influence[0] + dv_gravity_linked[0]
-        atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_link_influence[1] + dv_gravity_linked[1]
+        atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_gravity_linked[0]
+        atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
 
         # [Если связи заполнены, делать больше нечего]
         max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
@@ -249,6 +250,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
             # [Ограничим количество новых связей общим лимитом и добавим в выборку]
             new_atom_links = new_atom_links[:(max_atom_links-atom_links.shape[0])]
             new_links.append(new_atom_links)
+        pass
 
     new_links_total = np_unique_links(concat(new_links, links.shape[1], np.int64))
 
@@ -287,7 +289,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
 
 @nb.njit(
     (
-        nb.int64[:, :]
+        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
         (nb.float64[:, :], nb.int64[:, :])
     ),
     fastmath=True,
@@ -296,7 +298,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     # parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
+def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
 
@@ -305,10 +307,8 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = np.sqrt(l2)
 
-    filter_mask = l < 25  # TODO factor
+    filter_mask = l < 50  # TODO factor
     links = links[filter_mask]
-    lhs_atoms = atoms[links[:, L_COL_LHS]]
-    rhs_atoms = atoms[links[:, L_COL_RHS]]
 
     d = d[filter_mask]
     l = l[filter_mask]
@@ -316,14 +316,14 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     nd = (d.T / l).T
     dv = (nd.T / l).T  # l2 вместо l ???
     # dv = (dv.T * mult).T
-    dv = np.sum(dv, axis=0) * 3  # TODO factor
+    dv = np.sum(dv, axis=0) * 2  # TODO factor
 
-    lhs_atoms[:, A_COL_VX] += dv[0]
-    lhs_atoms[:, A_COL_VY] += dv[1]
-    rhs_atoms[:, A_COL_VX] -= dv[0]
-    rhs_atoms[:, A_COL_VY] -= dv[1]
+    atoms[links[:, L_COL_LHS], A_COL_VX] += dv[0]
+    atoms[links[:, L_COL_LHS], A_COL_VY] += dv[1]
+    atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[0]
+    atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[1]
 
-    return links
+    return atoms, links
 
 
 @nb.njit(

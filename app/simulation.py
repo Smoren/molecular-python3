@@ -58,7 +58,7 @@ class Simulation:
         self._links = np.append(self._links, new_links, axis=0)
 
     def _step_interact_links(self) -> None:
-        self._links = interact_links(self._atoms, self._links)
+        self._atoms, self._links = interact_links(self._atoms, self._links)
 
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)
@@ -68,7 +68,7 @@ class Simulation:
         fastmath=True,
         looplift=True,
         boundscheck=False,
-        parallel=True,
+        # parallel=True,
         cache=not MODE_DEBUG,
     )
     def _step_display(self) -> None:

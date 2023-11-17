@@ -17,3 +17,17 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         np.random.randint(low=0, high=len(ATOMS_COLORS), size=size).astype('float'),
     ], dtype=np.float64).T
+
+
+def generate_debug():
+    return np.array([
+        np.array([0, 1]).astype('float'),
+        np.array([500, 500]).astype('float'),
+        np.array([520, 500]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        np.array([5, 5]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+    ], dtype=np.float64).T
