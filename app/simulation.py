@@ -1,5 +1,5 @@
 import time
-from typing import Tuple, Set, Dict
+from typing import Tuple, Set, Dict, Callable
 
 import numpy as np
 import pygame
@@ -20,6 +20,7 @@ class Simulation:
     _max_coord: np.ndarray
     _links: Set[Tuple[int, int]]
     _atom_links: Dict[int, Set[Tuple[int, int]]]
+    _draw_atoms: Callable
 
     def __init__(self, atoms: np.ndarray, window_size: Tuple[int, int], max_coord: Tuple[int, int]):
         self._atoms = atoms
@@ -29,6 +30,7 @@ class Simulation:
         self._clock = pygame.time.Clock()
         self._links = set()
         self._atom_links = dict()
+        self._draw_atoms = np.vectorize(self._drawer.draw_circle)
 
     def start(self):
         self._is_stopped = False
@@ -60,13 +62,24 @@ class Simulation:
         looplift=True,
         boundscheck=False,
         parallel=True,
-        cache=not MODE_DEBUG
+        cache=not MODE_DEBUG,
     )
     def _step_display(self) -> None:
         self._drawer.clear()
 
-        for i in nb.prange(self._atoms.shape[0]):
-            row = self._atoms[i]
-            self._drawer.draw_circle((row[COL_X], row[COL_Y]), row[COL_R], ATOMS_COLORS[int(row[COL_TYPE])])
+        colors = ATOMS_COLORS[self._atoms[:, COL_TYPE].astype(np.int64)]
+
+        self._draw_atoms(
+            self._atoms[:, COL_X],
+            self._atoms[:, COL_Y],
+            self._atoms[:, COL_R],
+            colors[:, 0],
+            colors[:, 1],
+            colors[:, 2],
+        )
+
+        # for i in nb.prange(self._atoms.shape[0]):
+        #     row = self._atoms[i]
+        #     self._drawer.draw_circle(row[COL_X], row[COL_Y], row[COL_R], ATOMS_COLORS[int(row[COL_TYPE])])
 
         self._drawer.update()
