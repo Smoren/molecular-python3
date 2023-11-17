@@ -5,15 +5,18 @@ MODE_DEBUG = True
 # ATOMS_COUNT = 4
 # WINDOW_SIZE = (100, 100)
 
-ATOMS_COUNT = 7000
+ATOMS_COUNT = 3000
 WINDOW_SIZE = (1900, 1000)
 
 CLUSTER_SIZE = 100
 
 ATOMS_GRAVITY = np.array([
-    [1, -1, -0.2],
-    [-1, 0, 0.5],
-    [0.1, -0.1, 0.1],
+    [-1, -1, -1],
+    [-1, -1, -1],
+    [-1, -1, -1],
+    # [1, -1, -0.2],
+    # [-1, 0, 0.5],
+    # [0.1, -0.1, 0.1],
 ])
 ATOMS_LINK_GRAVITY = np.array([
     [-1, -1, 1],

@@ -183,7 +183,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
         atom_links = links[links_mask]
 
-        max_atom_links = 2  # TODO factor
+        max_atom_links = 3  # TODO factor
         if atom_links.shape[0] > max_atom_links:
             continue
 
@@ -194,7 +194,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         nl_l = l[~mask_linked]
 
         # создадим новые связи с близкими атомами
-        close_neighbours = not_linked_neighbours[nl_l < 20]  # TODO factor
+        close_neighbours = not_linked_neighbours[nl_l < 15]  # TODO factor
         new_atom_links = np.empty(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
         new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
         new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
@@ -222,7 +222,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
     parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
+def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
     tasks = clusterize_tasks(atoms, links, clusters_coords)
     new_links = [np.empty(shape=(0, 2), dtype=np.int64)] * len(tasks)
     for i in nb.prange(len(tasks)):
@@ -239,6 +239,30 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
         print(f'new links: {len(total_new_links)}')
 
     return total_new_links
+
+
+@nb.njit(
+    (
+        nb.int64[:, :]
+        (nb.float64[:, :], nb.int64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    parallel=True,
+    cache=not MODE_DEBUG,
+)
+def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
+    lhs_atoms = atoms[links[:, L_COL_LHS]]
+    rhs_atoms = atoms[links[:, L_COL_RHS]]
+
+    coords_columns = np.array([A_COL_X, A_COL_Y])
+    d = lhs_atoms[:, coords_columns] - rhs_atoms[:, coords_columns]
+    l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
+
+    links = links[l < 25]  # TODO factor
+
+    return links
 
 
 @nb.njit(

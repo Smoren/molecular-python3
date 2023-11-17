@@ -9,7 +9,7 @@ import numba as nb
 from app.config import ATOMS_COLORS, MODE_DEBUG
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
 from app.drawer import Drawer
-from app.utils import interact_all, apply_speed
+from app.utils import interact_atoms, apply_speed, interact_links
 
 
 class Simulation:
@@ -55,11 +55,11 @@ class Simulation:
 
     def _step_interact_atoms(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
-        new_links = interact_all(self._atoms, self._links, clusters_coords)
+        new_links = interact_atoms(self._atoms, self._links, clusters_coords)
         self._links = np.append(self._links, new_links, axis=0)
 
     def _step_interact_links(self) -> None:
-        pass
+        self._links = interact_links(self._atoms, self._links)
 
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)
