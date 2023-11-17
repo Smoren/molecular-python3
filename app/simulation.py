@@ -6,7 +6,7 @@ import pygame
 import numba as nb
 
 from app.config import ATOMS_COLORS, MODE_DEBUG
-from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
+from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE
 from app.drawer import Drawer
 from app.utils import interact_atoms, apply_speed, interact_links
 
@@ -68,7 +68,7 @@ class Simulation:
         fastmath=True,
         looplift=True,
         boundscheck=False,
-        # parallel=True,
+        parallel=True,
         cache=not MODE_DEBUG,
     )
     def _step_display(self) -> None:

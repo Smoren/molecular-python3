@@ -192,7 +192,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 25  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < 35  # TODO factor
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -225,8 +225,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Применим суммарное ускорение]
-        atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_gravity_linked[0]
-        atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
+        # atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_gravity_linked[0]
+        # atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
 
         # [Если связи заполнены, делать больше нечего]
         max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
@@ -287,17 +287,17 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     return total_new_links
 
 
-@nb.njit(
-    (
-        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
-        (nb.float64[:, :], nb.int64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    # parallel=True,
-    cache=not MODE_DEBUG,
-)
+# @nb.njit(
+#     (
+#         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
+#         (nb.float64[:, :], nb.int64[:, :])
+#     ),
+#     fastmath=True,
+#     looplift=True,
+#     boundscheck=False,
+#     # parallel=True,
+#     cache=not MODE_DEBUG,
+# )
 def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
@@ -307,7 +307,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = np.sqrt(l2)
 
-    filter_mask = l < 50  # TODO factor
+    filter_mask = l < 60  # TODO factor
     links = links[filter_mask]
 
     d = d[filter_mask]
@@ -315,13 +315,13 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
 
     nd = (d.T / l).T
     dv = (nd.T / l).T  # l2 вместо l ???
-    # dv = (dv.T * mult).T
-    dv = np.sum(dv, axis=0) * 2  # TODO factor
+    dv = dv * 1  # TODO factor
 
-    atoms[links[:, L_COL_LHS], A_COL_VX] += dv[0]
-    atoms[links[:, L_COL_LHS], A_COL_VY] += dv[1]
-    atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[0]
-    atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[1]
+    # TODO WTF???
+    atoms[links[:, L_COL_LHS], A_COL_VX] += dv[:, 0]
+    atoms[links[:, L_COL_LHS], A_COL_VY] += dv[:, 1]
+    atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[:, 0]
+    atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[:, 1]
 
     return atoms, links
 
