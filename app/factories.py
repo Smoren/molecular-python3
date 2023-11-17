@@ -21,13 +21,13 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
 
 def generate_debug():
     return np.array([
-        np.array([0, 1]).astype('float'),
-        np.array([500, 500]).astype('float'),
-        np.array([520, 500]).astype('float'),
-        np.array([0, 0]).astype('float'),
-        np.array([0, 0]).astype('float'),
-        np.array([5, 5]).astype('float'),
-        np.array([0, 0]).astype('float'),
-        np.array([0, 0]).astype('float'),
-        np.array([0, 0]).astype('float'),
+        np.array([0, 1, 2]).astype('float'),
+        np.array([500, 500, 530]).astype('float'),
+        np.array([535, 500, 500]).astype('float'),
+        np.array([0, 0, 0]).astype('float'),
+        np.array([0, 0, 0]).astype('float'),
+        np.array([5, 5, 5]).astype('float'),
+        np.array([0, 0, 0]).astype('float'),
+        np.array([0, 0, 0]).astype('float'),
+        np.array([0, 1, 2]).astype('float'),
     ], dtype=np.float64).T

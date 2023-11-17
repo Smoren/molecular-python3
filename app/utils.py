@@ -192,7 +192,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 35  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < 45  # TODO factor
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -212,7 +212,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 1  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
@@ -221,12 +221,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 1  # TODO factor
+        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 0  # TODO factor
         ###############################
 
         # [Применим суммарное ускорение]
-        # atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_gravity_linked[0]
-        # atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
+        atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_gravity_linked[0]
+        atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
 
         # [Если связи заполнены, делать больше нечего]
         max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
@@ -287,17 +287,17 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     return total_new_links
 
 
-# @nb.njit(
-#     (
-#         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
-#         (nb.float64[:, :], nb.int64[:, :])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     # parallel=True,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
+        (nb.float64[:, :], nb.int64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    # parallel=True,
+    cache=not MODE_DEBUG,
+)
 def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
@@ -314,8 +314,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     l = l[filter_mask]
 
     nd = (d.T / l).T
-    dv = (nd.T / l).T  # l2 вместо l ???
-    dv = dv * 1  # TODO factor
+    dv = nd * 0.1  # TODO factor
 
     # TODO WTF???
     atoms[links[:, L_COL_LHS], A_COL_VX] += dv[:, 0]
@@ -336,27 +335,27 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def apply_speed(data: np.ndarray, max_coord: np.ndarray) -> None:
-    data[:, A_COL_X] += data[:, A_COL_VX]
-    data[:, A_COL_Y] += data[:, A_COL_VY]
+def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
+    atoms[:, A_COL_X] += atoms[:, A_COL_VX]
+    atoms[:, A_COL_Y] += atoms[:, A_COL_VY]
 
-    mask_x_min = data[:, A_COL_X] < 0
-    mask_y_min = data[:, A_COL_Y] < 0
-    mask_x_max = data[:, A_COL_X] > max_coord[0]
-    mask_y_max = data[:, A_COL_Y] > max_coord[1]
+    mask_x_min = atoms[:, A_COL_X] < 0
+    mask_y_min = atoms[:, A_COL_Y] < 0
+    mask_x_max = atoms[:, A_COL_X] > max_coord[0]
+    mask_y_max = atoms[:, A_COL_Y] > max_coord[1]
 
-    data[mask_x_min, A_COL_VX] *= -1
-    data[mask_y_min, A_COL_VY] *= -1
-    data[mask_x_min, A_COL_X] *= -1
-    data[mask_y_min, A_COL_Y] *= -1
+    atoms[mask_x_min, A_COL_VX] *= -1
+    atoms[mask_y_min, A_COL_VY] *= -1
+    atoms[mask_x_min, A_COL_X] *= -1
+    atoms[mask_y_min, A_COL_Y] *= -1
 
-    data[mask_x_max, A_COL_VX] *= -1
-    data[mask_y_max, A_COL_VY] *= -1
-    data[mask_x_max, A_COL_X] = max_coord[0] - (data[mask_x_max, A_COL_X] - max_coord[0])
-    data[mask_y_max, A_COL_Y] = max_coord[1] - (data[mask_y_max, A_COL_Y] - max_coord[1])
+    atoms[mask_x_max, A_COL_VX] *= -1
+    atoms[mask_y_max, A_COL_VY] *= -1
+    atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
+    atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
 
-    data[:, A_COL_VX] *= 0.98  # TODO factor
-    data[:, A_COL_VY] *= 0.98  # TODO factor
+    atoms[:, A_COL_VX] *= 0.9  # TODO factor
+    atoms[:, A_COL_VY] *= 0.9  # TODO factor
 
-    data[:, A_COL_CX] = np.floor(data[:, A_COL_X] / CLUSTER_SIZE)
-    data[:, A_COL_CY] = np.floor(data[:, A_COL_Y] / CLUSTER_SIZE)
+    atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / CLUSTER_SIZE)
+    atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / CLUSTER_SIZE)
