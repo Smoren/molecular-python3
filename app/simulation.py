@@ -1,5 +1,5 @@
 import time
-from typing import Tuple
+from typing import Tuple, Set, Dict
 
 import numpy as np
 import pygame
@@ -18,6 +18,8 @@ class Simulation:
     _is_stopped: bool = False
     _atoms: np.ndarray
     _max_coord: np.ndarray
+    _links: Set[Tuple[int, int]]
+    _atom_links: Dict[int, Set[Tuple[int, int]]]
 
     def __init__(self, atoms: np.ndarray, window_size: Tuple[int, int], max_coord: Tuple[int, int]):
         self._atoms = atoms
@@ -25,6 +27,8 @@ class Simulation:
         self._screen = pygame.display.set_mode(window_size)
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
+        self._links = set()
+        self._atom_links = dict()
 
     def start(self):
         self._is_stopped = False
