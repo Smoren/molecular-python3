@@ -5,9 +5,22 @@ from app.constants import COL_CX, COL_CY, COL_X, COL_Y, COL_VX, COL_VY, COL_TYPE
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
 
 
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
+def isin(a, b):
+    out = np.empty(a.shape[0], dtype=nb.boolean)
+    b = set(b)
+    for i in nb.prange(a.shape[0]):
+        out[i] = a[i] in b
+    return out
+
+
 @nb.jit(
     (
-        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:]))
+        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
     ),
     fastmath=True,
@@ -26,16 +39,15 @@ def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: n
                       (data[:, COL_CY] <= cluster_y + 1)
 
     cluster_atoms, neighbours_atoms = data[cluster_mask], data[neighbours_mask]
-    # mask = np.isin(links[:, 0], cluster_atoms[:, COL_ID])
-    # links_filtered = links[np.isin(links[:, 0], cluster_atoms[:, COL_ID]) | np.isin(links[:, 1], cluster_atoms[:, COL_ID])]
-    # link_indices = np.where(np.isin(links[:, 0], [1]))
+    mask_links = isin(links[:, 0], cluster_atoms[:, COL_ID]) | isin(links[:, 1], cluster_atoms[:, COL_ID])
+    links_filtered = links[mask_links]
 
-    return cluster_atoms, neighbours_atoms, cluster_mask
+    return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
 
 @nb.jit(
     (
-        nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:])))
+        nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])))
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
     ),
     fastmath=True,
@@ -51,7 +63,7 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
 @nb.jit(
     (
         nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
-        (nb.float64[:, :], nb.float64[:, :], nb.boolean[:])
+        (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
     ),
     fastmath=True,
     nopython=True,
@@ -59,7 +71,7 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, cluster_mask: np.ndarray):
+def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
     coords_columns = np.array([COL_X, COL_Y])
 
     for i in nb.prange(cluster_atoms.shape[0]):
