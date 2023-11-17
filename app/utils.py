@@ -131,7 +131,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
                        | isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_RHS]))
         not_linked_neighbours = neighbours[~mask_linked]
         nl_l = l[~mask_linked]
+
+        # создадим новые связи с близкими атомами
         close_neighbours = not_linked_neighbours[nl_l < 30]
+        new_links = np.zeros(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
+        new_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
+        new_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
 
     return cluster_atoms, cluster_mask
 
