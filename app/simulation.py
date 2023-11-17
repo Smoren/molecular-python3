@@ -49,7 +49,7 @@ class Simulation:
             self._step_interact()
             self._step_display()
             self._clock.tick(30)
-            print(f'step spent: {(time.time_ns() - ts) / 1_000_000}')
+            print(f'step spent: {(time.time_ns() - ts) / 1_000_000} | links: {self._links.shape[0]}')
 
     def stop(self):
         self._is_stopped = True
