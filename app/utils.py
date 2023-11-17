@@ -5,7 +5,7 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, A_COL_TYPE, A_COL_R, A_COL_ID, \
     L_COL_LHS, L_COL_RHS
-from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS
+from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATOMS_LINK_GRAVITY
 
 
 @nb.njit(
@@ -137,74 +137,118 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
 
-        # исключим сам атом из соседей
-        mask_exclude_self = ((neighbour_atoms[:, A_COL_X] != atom[A_COL_X])
-                             | (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y]))
-        neighbours = neighbour_atoms[mask_exclude_self]
-        d = neighbours[:, coords_columns] - atom[coords_columns]
-        l2 = d[:, 0] ** 2 + d[:, 1] ** 2
-        l = np.sqrt(l2)
+        # [Определим соседей, с которыми возможно взаимодействие]
+        _mask_exclude_self = ((neighbour_atoms[:, A_COL_X] != atom[A_COL_X]) |
+                              (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y]))
+        neighbours = neighbour_atoms[_mask_exclude_self]
+        _d = neighbours[:, coords_columns] - atom[coords_columns]
+        _l2 = _d[:, 0] ** 2 + _d[:, 1] ** 2
+        _l = np.sqrt(_l2)
+        _mask_in_radius = _l <= CLUSTER_SIZE
 
-        # исключим слишком далекие атомы
-        mask_in_radius = l <= CLUSTER_SIZE
-        neighbours = neighbours[mask_in_radius]
-        d = d[mask_in_radius]
-        l = l[mask_in_radius]
+        ###############################
+        neighbours = neighbours[_mask_in_radius]
+        neighbours_d = _d[_mask_in_radius]
+        neighbours_l = _l[_mask_in_radius]
+        ###############################
 
-        # возьмем атомы, не столкнувшиеся с данным
-        mask_bounced = l < neighbours[:, A_COL_R] + atom[A_COL_R]
-        neighbours_nb = neighbours[~mask_bounced]
-        nb_d = d[~mask_bounced]
-        nb_l = l[~mask_bounced]
+        # [Получим связи атома]
+        _links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
 
-        # получим множители гравитации согласно правилам взаимодействия частиц
-        mult = ATOMS_GRAVITY[int(atom[A_COL_TYPE]), neighbours_nb[:, A_COL_TYPE].astype(np.int64)]
+        ###############################
+        atom_links = links[_links_mask]
+        ###############################
 
-        # найдем ускорение за счет сил гравитации/антигравитации
-        nb_nd = (nb_d.T / nb_l).T
-        nb_dv = (nb_nd.T / nb_l).T  # l2 вместо l ???
-        nb_dv = (nb_dv.T * mult).T
-        nb_dv = np.sum(nb_dv, axis=0) * 3  # TODO factor
+        # [Разделим соседей на столкнувшихся и не столкнувшихся с атомом]
+        _mask_bounced = neighbours_l < neighbours[:, A_COL_R] + atom[A_COL_R]
 
-        # возьмем атомы, столкнувшиеся с данным
-        b_d = d[mask_bounced]
-        b_l = l[mask_bounced]
+        ###############################
+        neighbours_bounced_d = neighbours_d[_mask_bounced]
+        neighbours_bounced_l = neighbours_l[_mask_bounced]
+        ###############################
 
-        # найдем ускорение за счет сил упругости
-        b_nd = (b_d.T / b_l).T
-        b_dv = (b_nd.T / np.maximum(b_l, 2)).T  # TODO factor
-        b_dv = np.sum(b_dv, axis=0) * 0.5  # TODO factor
+        ###############################
+        neighbours_not_bounced = neighbours[~_mask_bounced]
+        neighbours_not_bounced_d = neighbours_d[~_mask_bounced]
+        neighbours_not_bounced_l = neighbours_l[~_mask_bounced]
+        ###############################
 
-        # применим суммарное ускорение
-        atom[A_COL_VX] += nb_dv[0] - b_dv[0]
-        atom[A_COL_VY] += nb_dv[1] - b_dv[1]
+        # [Разделим не столкнувшихся соседей на связанные и не связанные с атомом]
+        _mask_linked = (isin(neighbours_not_bounced[:, A_COL_ID], atom_links[:, L_COL_LHS]) |
+                        isin(neighbours_not_bounced[:, A_COL_ID], atom_links[:, L_COL_RHS]))
 
-        # получим связи атома
-        links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
-        atom_links = links[links_mask]
+        ###############################
+        neighbours_linked = neighbours_not_bounced[_mask_linked]
+        neighbours_linked_d = neighbours_not_bounced_d[_mask_linked]
+        neighbours_linked_l = neighbours_not_bounced_l[_mask_linked]
+        ###############################
 
-        max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]  # TODO factor
+        ###############################
+        neighbours_not_linked = neighbours_not_bounced[~_mask_linked]
+        neighbours_not_linked_d = neighbours_not_bounced_d[~_mask_linked]
+        neighbours_not_linked_l = neighbours_not_bounced_l[~_mask_linked]
+        ###############################
+
+        # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
+        _mask_to_link = neighbours_not_linked_l < 15  # TODO factor
+
+        ###############################
+        neighbours_to_link = neighbours_not_linked[_mask_to_link]
+        ###############################
+
+        # [Найдем ускорение отталкивания атома от столкнувшихся с ним соседей]
+        _d_norm = (neighbours_bounced_d.T / neighbours_bounced_l).T
+        _l_limited = np.maximum(neighbours_bounced_l, 2)  # TODO factor
+
+        ###############################
+        dv_elastic = -np.sum((_d_norm.T / _l_limited).T, axis=0) * 0.5  # TODO factor
+        ###############################
+
+        # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
+        _mult = ATOMS_GRAVITY[int(atom[A_COL_TYPE]), neighbours_not_linked[:, A_COL_TYPE].astype(np.int64)]
+        _d_norm = (neighbours_not_linked_d.T / neighbours_not_linked_l).T
+        _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
+
+        ###############################
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0.5  # TODO factor
+        ###############################
+
+        # [Найдем ускорение гравитационных и связных взаимодействий атома со связанными соседями]
+        _mult = ATOMS_LINK_GRAVITY[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
+        _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
+        _f = (_d_norm.T * neighbours_linked_l).T  # l2 вместо l ???
+
+        ###############################
+        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 0.03  # TODO factor
+        dv_link_influence = np.sum(_d_norm, axis=0) * 0.3  # TODO factor
+        ###############################
+
+        # [Применим суммарное ускорение]
+        atom[A_COL_VX] += dv_elastic[0] + dv_gravity_not_linked[0] + dv_link_influence[0] + dv_gravity_linked[0]
+        atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_link_influence[1] + dv_gravity_linked[1]
+
+        # [Если связи заполнены, делать больше нечего]
+        max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
         if atom_links.shape[0] > max_atom_links:
             continue
 
-        # получим не связанных с атомом соседей
-        mask_linked = (isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_LHS])
-                       | isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_RHS]))
-        not_linked_neighbours = neighbours[~mask_linked]
-        nl_l = l[~mask_linked]
+        # [Создаем новые связи]
+        new_atom_links = np.empty(shape=(neighbours_to_link.shape[0], 2), dtype=np.int64)
+        new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], neighbours_to_link.shape[0]).astype(np.int64)
+        new_atom_links[:, 1] = neighbours_to_link[:, A_COL_ID].T.astype(np.int64)
 
-        # создадим новые связи с близкими атомами
-        close_neighbours = not_linked_neighbours[nl_l < 15]  # TODO factor
-        new_atom_links = np.empty(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
-        new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
-        new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
-
+        # [Если кандидаты есть]
         if new_atom_links.shape[0] > 0:
-            new_atom_links[:, 0], new_atom_links[:, 1] \
-                = np_apply_reducer(new_atom_links, np.min, axis=1), np_apply_reducer(new_atom_links, np.max, axis=1)
+            # [Отсортируем ID в кортежах связей по возрастанию]
+            new_atom_links[:, 0], new_atom_links[:, 1] = np_apply_reducer(
+                new_atom_links, np.min, axis=1,
+            ), np_apply_reducer(
+                new_atom_links, np.max, axis=1,
+            )
+
+            # [Ограничим количество новых связей общим лимитом и добавим в выборку]
             new_atom_links = new_atom_links[:(max_atom_links-atom_links.shape[0])]
-            if new_atom_links.shape[0] > 0:
-                new_links.append(new_atom_links)
+            new_links.append(new_atom_links)
 
     new_links_total = np_unique_links(concat(new_links, links.shape[1], np.int64))
 
