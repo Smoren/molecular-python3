@@ -26,12 +26,12 @@ def isin(a, b):
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def concat(arrays: List[np.ndarray]) -> np.ndarray:
+def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
     total_len = 0
     for i in nb.prange(len(arrays)):
         total_len += arrays[i].shape[0]
 
-    result = np.empty(shape=(total_len, arrays[0].shape[1]), dtype=arrays[0].dtype)
+    result = np.empty(shape=(total_len, columns_count), dtype=dtype)
 
     k = 0
     for i in nb.prange(len(arrays)):
@@ -96,7 +96,7 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
     coords_columns = np.array([A_COL_X, A_COL_Y])
-    new_links = []
+    new_links = nb.typed.List.empty_list(nb.int64[:, :])
 
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
@@ -158,9 +158,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         new_atom_links = np.empty(shape=(close_neighbours.shape[0], 2), dtype=np.int64)
         new_atom_links[:, 0] = np.repeat(atom[A_COL_ID], close_neighbours.shape[0]).astype(np.int64)
         new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
-        new_links.append(new_atom_links)
 
-    return cluster_atoms, concat(new_links), cluster_mask
+        if new_atom_links.shape[0] > 0:
+            # new_atom_links[:, 0], new_atom_links[:, 1] = np.min(new_atom_links, axis=1), np.max(new_atom_links, axis=1)
+            new_links.append(new_atom_links)
+
+    return cluster_atoms, concat(new_links, links.shape[1], np.int64), cluster_mask
 
 
 @nb.njit(
@@ -186,7 +189,7 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
             new_links[i][j] = cluster_new_links[j]
 
     # TODO удалить повторы
-    total_new_links = concat(new_links)
+    total_new_links = concat(new_links, links.shape[1], np.int64)
     if len(total_new_links) > 0:
         print(f'new links: {len(total_new_links)}')
     return total_new_links
