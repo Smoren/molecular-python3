@@ -7,7 +7,7 @@ import pygame
 import numba as nb
 
 from app.config import ATOMS_COLORS, MODE_DEBUG
-from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE
+from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
 from app.drawer import Drawer
 from app.utils import interact_all, apply_speed
 
@@ -44,7 +44,8 @@ class Simulation:
 
             ts = time.time_ns()
             self._step_move()
-            self._step_interact()
+            self._step_interact_atoms()
+            self._step_interact_links()
             self._step_display()
             self._clock.tick(30)
             print(f'step spent: {(time.time_ns() - ts) / 1_000_000} | links: {self._links.shape[0]}')
@@ -52,10 +53,13 @@ class Simulation:
     def stop(self):
         self._is_stopped = True
 
-    def _step_interact(self) -> None:
+    def _step_interact_atoms(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
         new_links = interact_all(self._atoms, self._links, clusters_coords)
         self._links = np.append(self._links, new_links, axis=0)
+
+    def _step_interact_links(self) -> None:
+        pass
 
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)
@@ -81,10 +85,6 @@ class Simulation:
             colors[:, 1],
             colors[:, 2],
         )
-
-        # for i in nb.prange(self._atoms.shape[0]):
-        #     row = self._atoms[i]
-        #     self._drawer.draw_circle(row[A_COL_X], row[A_COL_Y], row[A_COL_R], ATOMS_COLORS[int(row[A_COL_TYPE])])
 
         if self._links.shape[0] > 0:
             self._draw_links_vectorized(self._links[:, 0], self._links[:, 1])

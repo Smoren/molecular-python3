@@ -183,6 +183,10 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
         atom_links = links[links_mask]
 
+        max_atom_links = 2  # TODO factor
+        if atom_links.shape[0] > max_atom_links:
+            continue
+
         # получим не связанных с атомом соседей
         mask_linked = (isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_LHS])
                        | isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_RHS]))
@@ -198,7 +202,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         if new_atom_links.shape[0] > 0:
             new_atom_links[:, 0], new_atom_links[:, 1] \
                 = np_apply_reducer(new_atom_links, np.min, axis=1), np_apply_reducer(new_atom_links, np.max, axis=1)
-            new_atom_links = new_atom_links[:(2-atom_links.shape[0])]  # TODO factor
+            new_atom_links = new_atom_links[:(max_atom_links-atom_links.shape[0])]
             if new_atom_links.shape[0] > 0:
                 new_links.append(new_atom_links)
 
