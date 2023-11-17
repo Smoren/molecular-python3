@@ -2,7 +2,7 @@ import numpy as np
 import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, A_COL_TYPE, A_COL_R, A_COL_ID, \
-    L_COL_DEL, L_COL_LHS, L_COL_RHS
+    L_COL_LHS, L_COL_RHS
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
 
 
@@ -43,7 +43,7 @@ def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: n
 
     mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID])
                   | isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID]))
-    links_filtered = links[mask_links & links[:, L_COL_DEL] == 0]
+    links_filtered = links[mask_links]
 
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
@@ -79,11 +79,10 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
-        links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
-        atom_links = links[links_mask & links[:, L_COL_DEL] == 0]
 
-        # исключим саму частицу
-        mask_exclude_self = (neighbour_atoms[:, A_COL_X] != atom[A_COL_X]) | (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y])
+        # исключим сам атом из соседей
+        mask_exclude_self = ((neighbour_atoms[:, A_COL_X] != atom[A_COL_X])
+                             | (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y]))
         neighbours = neighbour_atoms[mask_exclude_self]
         d = neighbours[:, coords_columns] - atom[coords_columns]
         l2 = d[:, 0] ** 2 + d[:, 1] ** 2
@@ -122,6 +121,17 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         # применим суммарное ускорение
         atom[A_COL_VX] += nb_dv[0] - b_dv[0]
         atom[A_COL_VY] += nb_dv[1] - b_dv[1]
+
+        # получим связи атома
+        links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
+        atom_links = links[links_mask]
+
+        # получим не связанных с атомом соседей
+        mask_linked = (isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_LHS])
+                       | isin(neighbours[:, A_COL_ID], atom_links[:, L_COL_RHS]))
+        not_linked_neighbours = neighbours[~mask_linked]
+        nl_l = l[~mask_linked]
+        close_neighbours = not_linked_neighbours[nl_l < 30]
 
     return cluster_atoms, cluster_mask
 

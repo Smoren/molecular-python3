@@ -10,4 +10,3 @@ A_COL_TYPE = 8
 
 L_COL_LHS = 0
 L_COL_RHS = 1
-L_COL_DEL = 2

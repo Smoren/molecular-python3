@@ -30,7 +30,8 @@ class Simulation:
         self._screen = pygame.display.set_mode(window_size)
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
-        self._links = np.array([[random.randint(0, 1000), random.randint(1000, 2000), 0] for _ in range(50)])
+        # TODO костыль: должен быть хотя бы один элемент
+        self._links = np.array([[random.randint(0, 1000), random.randint(1000, 2000)] for _ in range(1)])
         self._atom_links = dict()
         self._draw_atoms_vectorized = np.vectorize(self._drawer.draw_circle)
         self._draw_links_vectorized = np.vectorize(self._draw_link)
