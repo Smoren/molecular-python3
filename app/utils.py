@@ -79,7 +79,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
-        # atom_links = links[links[:, 0] == int(atom[A_COL_ID]) | links[:, 1] == int(atom[A_COL_ID])]
+        links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
+        atom_links = links[links_mask & links[:, L_COL_DEL] == 0]
 
         # исключим саму частицу
         mask_exclude_self = (neighbour_atoms[:, A_COL_X] != atom[A_COL_X]) | (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y])
