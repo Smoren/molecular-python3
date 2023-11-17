@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 
 import numpy as np
 import numba as nb
@@ -6,6 +6,21 @@ import numba as nb
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, A_COL_TYPE, A_COL_R, A_COL_ID, \
     L_COL_LHS, L_COL_RHS
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
+
+
+@nb.njit
+def np_apply(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
+    assert arr.ndim == 2
+    assert axis in [0, 1]
+    if axis == 0:
+        result = np.empty(arr.shape[1])
+        for i in range(len(result)):
+            result[i] = func1d(arr[:, i])
+    else:
+        result = np.empty(arr.shape[0])
+        for i in range(len(result)):
+            result[i] = func1d(arr[i, :])
+    return result
 
 
 @nb.njit(
@@ -160,7 +175,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         new_atom_links[:, 1] = close_neighbours[:, A_COL_ID].T.astype(np.int64)
 
         if new_atom_links.shape[0] > 0:
-            # new_atom_links[:, 0], new_atom_links[:, 1] = np.min(new_atom_links, axis=1), np.max(new_atom_links, axis=1)
+            new_atom_links[:, 0], new_atom_links[:, 1] \
+                = np_apply(new_atom_links, np.min, axis=1), np_apply(new_atom_links, np.max, axis=1)
             new_links.append(new_atom_links)
 
     return cluster_atoms, concat(new_links, links.shape[1], np.int64), cluster_mask
