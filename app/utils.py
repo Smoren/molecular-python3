@@ -5,7 +5,7 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, A_COL_TYPE, A_COL_R, A_COL_ID, \
     L_COL_LHS, L_COL_RHS
-from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG
+from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS
 
 
 @nb.njit(
@@ -183,7 +183,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         links_mask = (links[:, L_COL_LHS] == int(atom[A_COL_ID])) | (links[:, L_COL_RHS] == int(atom[A_COL_ID]))
         atom_links = links[links_mask]
 
-        max_atom_links = 3  # TODO factor
+        max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]  # TODO factor
         if atom_links.shape[0] > max_atom_links:
             continue
 
@@ -249,7 +249,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     fastmath=True,
     looplift=True,
     boundscheck=False,
-    parallel=True,
+    # parallel=True,
     cache=not MODE_DEBUG,
 )
 def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
@@ -257,10 +257,27 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     rhs_atoms = atoms[links[:, L_COL_RHS]]
 
     coords_columns = np.array([A_COL_X, A_COL_Y])
-    d = lhs_atoms[:, coords_columns] - rhs_atoms[:, coords_columns]
-    l = np.sqrt(d[:, 0]**2 + d[:, 1]**2)
+    d = rhs_atoms[:, coords_columns] - lhs_atoms[:, coords_columns]
+    l2 = d[:, 0]**2 + d[:, 1]**2
+    l = np.sqrt(l2)
 
-    links = links[l < 25]  # TODO factor
+    filter_mask = l < 25  # TODO factor
+    links = links[filter_mask]
+    lhs_atoms = atoms[links[:, L_COL_LHS]]
+    rhs_atoms = atoms[links[:, L_COL_RHS]]
+
+    d = d[filter_mask]
+    l = l[filter_mask]
+
+    nd = (d.T / l).T
+    dv = (nd.T / l).T  # l2 вместо l ???
+    # dv = (dv.T * mult).T
+    dv = np.sum(dv, axis=0) * 3  # TODO factor
+
+    lhs_atoms[:, A_COL_VX] += dv[0]
+    lhs_atoms[:, A_COL_VY] += dv[1]
+    rhs_atoms[:, A_COL_VX] -= dv[0]
+    rhs_atoms[:, A_COL_VY] -= dv[1]
 
     return links
 
