@@ -26,14 +26,14 @@ def get_cluster_task_data(data: np.ndarray, cluster_coords: np.ndarray) -> tuple
 
 
 @nb.jit(
-    (nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:])))(nb.float64[:, :], nb.float64[:, :])),
+    (nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:])))(nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])),
     fastmath=True,
     nopython=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def clusterize_tasks(data: np.ndarray, clusters_coords: np.ndarray) -> list:
+def clusterize_tasks(data: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> list:
     return [get_cluster_task_data(data, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
 
 
@@ -96,7 +96,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
 
 
 @nb.jit(
-    (nb.types.NoneType('none')(nb.float64[:, :], nb.float64[:, :])),
+    (nb.types.NoneType('none')(nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])),
     fastmath=True,
     nopython=True,
     looplift=True,
@@ -104,12 +104,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, clu
     parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_all(data: np.ndarray, clusters_coords: np.ndarray) -> None:
-    tasks = clusterize_tasks(data, clusters_coords)
+def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> None:
+    tasks = clusterize_tasks(atoms, links, clusters_coords)
     for i in nb.prange(len(tasks)):
         task_data = tasks[i]
         cluster_atoms, cluster_mask = interact_cluster(*task_data)
-        data[cluster_mask] = cluster_atoms
+        atoms[cluster_mask] = cluster_atoms
 
 
 @nb.jit(

@@ -19,7 +19,7 @@ class Simulation:
     _is_stopped: bool = False
     _atoms: np.ndarray
     _max_coord: np.ndarray
-    _links: Set[Tuple[int, int]]
+    _links: np.ndarray
     _atom_links: Dict[int, Set[Tuple[int, int]]]
     _draw_atoms_vectorized: Callable
     _draw_links_vectorized: Callable
@@ -30,7 +30,7 @@ class Simulation:
         self._screen = pygame.display.set_mode(window_size)
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
-        self._links = {(random.randint(0, 1000), random.randint(1000, 2000)) for _ in range(50)}
+        self._links = np.array([[random.randint(0, 1000), random.randint(1000, 2000)] for _ in range(50)])
         self._atom_links = dict()
         self._draw_atoms_vectorized = np.vectorize(self._drawer.draw_circle)
         self._draw_links_vectorized = np.vectorize(self._draw_link)
@@ -54,7 +54,7 @@ class Simulation:
 
     def _step_interact(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [COL_CX, COL_CY]], axis=0)
-        interact_all(self._atoms, clusters_coords)
+        interact_all(self._atoms, self._links, clusters_coords)
 
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)
@@ -85,8 +85,7 @@ class Simulation:
         #     row = self._atoms[i]
         #     self._drawer.draw_circle(row[COL_X], row[COL_Y], row[COL_R], ATOMS_COLORS[int(row[COL_TYPE])])
 
-        links = np.array(list(self._links))
-        self._draw_links_vectorized(links[:, 0], links[:, 1])
+        self._draw_links_vectorized(self._links[:, 0], self._links[:, 1])
 
         self._drawer.update()
 
