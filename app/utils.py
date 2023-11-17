@@ -198,7 +198,9 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         if new_atom_links.shape[0] > 0:
             new_atom_links[:, 0], new_atom_links[:, 1] \
                 = np_apply_reducer(new_atom_links, np.min, axis=1), np_apply_reducer(new_atom_links, np.max, axis=1)
-            new_links.append(new_atom_links)
+            new_atom_links = new_atom_links[:(2-atom_links.shape[0])]  # TODO factor
+            if new_atom_links.shape[0] > 0:
+                new_links.append(new_atom_links)
 
     new_links_total = np_unique_links(concat(new_links, links.shape[1], np.int64))
 
