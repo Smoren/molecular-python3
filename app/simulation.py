@@ -31,7 +31,8 @@ class Simulation:
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
         # TODO костыль: должен быть хотя бы один элемент
-        self._links = np.array([[random.randint(0, 1000), random.randint(1000, 2000)] for _ in range(1)])
+        # self._links = np.array([[random.randint(0, 1000), random.randint(1000, 2000)] for _ in range(1)])
+        self._links = np.array([[0, 1] for _ in range(1)])
         self._atom_links = dict()
         self._draw_atoms_vectorized = np.vectorize(self._drawer.draw_circle)
         self._draw_links_vectorized = np.vectorize(self._draw_link)
@@ -55,7 +56,8 @@ class Simulation:
 
     def _step_interact(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
-        interact_all(self._atoms, self._links, clusters_coords)
+        new_links = interact_all(self._atoms, self._links, clusters_coords)
+        self._links = np.append(self._links, new_links, axis=0)
 
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)

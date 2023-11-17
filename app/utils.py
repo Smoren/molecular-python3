@@ -187,7 +187,8 @@ def interact_all(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarr
 
     # TODO удалить повторы
     total_new_links = concat(new_links)
-    print(f'new links: {len(total_new_links)}')
+    if len(total_new_links) > 0:
+        print(f'new links: {len(total_new_links)}')
     return total_new_links
 
 
