@@ -13,6 +13,20 @@ from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATO
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
+def isin(a, b):
+    out = np.empty(a.shape[0], dtype=nb.boolean)
+    # out = np.empty(a.shape[0], dtype=np.bool_)
+    b = set(b)
+    for i in nb.prange(a.shape[0]):
+        out[i] = a[i] in b
+    return out
+
+
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
     assert arr.ndim == 2
     assert axis in [0, 1]
@@ -49,20 +63,6 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def isin(a, b):
-    out = np.empty(a.shape[0], dtype=nb.boolean)
-    # out = np.empty(a.shape[0], dtype=np.bool_)
-    b = set(b)
-    for i in nb.prange(a.shape[0]):
-        out[i] = a[i] in b
-    return out
-
-
-@nb.njit(
-    fastmath=True,
-    boundscheck=False,
-    cache=not MODE_DEBUG,
-)
 def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
     total_len = 0
     for i in nb.prange(len(arrays)):
@@ -88,17 +88,17 @@ def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def get_cluster_task_data(data: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
+def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
-    cluster_mask = (data[:, A_COL_CX] == cluster_x) & \
-                   (data[:, A_COL_CY] == cluster_y)
-    neighbours_mask = (data[:, A_COL_CX] >= cluster_x - 1) & \
-                      (data[:, A_COL_CX] <= cluster_x + 1) & \
-                      (data[:, A_COL_CY] >= cluster_y - 1) & \
-                      (data[:, A_COL_CY] <= cluster_y + 1)
+    cluster_mask = (atoms[:, A_COL_CX] == cluster_x) & \
+                   (atoms[:, A_COL_CY] == cluster_y)
+    neighbours_mask = (atoms[:, A_COL_CX] >= cluster_x - 1) & \
+                      (atoms[:, A_COL_CX] <= cluster_x + 1) & \
+                      (atoms[:, A_COL_CY] >= cluster_y - 1) & \
+                      (atoms[:, A_COL_CY] <= cluster_y + 1)
 
-    cluster_atoms, neighbours_atoms = data[cluster_mask], data[neighbours_mask]
+    cluster_atoms, neighbours_atoms = atoms[cluster_mask], atoms[neighbours_mask]
 
     mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID])
                   | isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID]))
@@ -192,7 +192,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 45  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < 500  # TODO factor
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -212,16 +212,19 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0.5  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
         _mult = ATOMS_LINK_GRAVITY[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
-        _f = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
+        _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
+        _f2 = (_d_norm.T * neighbours_linked_l).T
+        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 0.5  # TODO factor
+        _elastic_part = np.sum(_f2, axis=0) * 0.001  # TODO factor
 
         ###############################
-        dv_gravity_linked = np.sum((_f.T * _mult).T, axis=0) * 0  # TODO factor
+        dv_gravity_linked = _gravity_part + _elastic_part
         ###############################
 
         # [Применим суммарное ускорение]
@@ -307,20 +310,22 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = np.sqrt(l2)
 
-    filter_mask = l < 60  # TODO factor
+    filter_mask = l < 500  # TODO factor
     links = links[filter_mask]
 
     d = d[filter_mask]
     l = l[filter_mask]
 
     nd = (d.T / l).T
-    dv = nd * 0.1  # TODO factor
+    dv = nd * 0.05 + d * 0.01  # TODO factor
+    # dv = nd * 0.1
+    # dv = d * 0.01
 
     # TODO WTF???
-    atoms[links[:, L_COL_LHS], A_COL_VX] += dv[:, 0]
-    atoms[links[:, L_COL_LHS], A_COL_VY] += dv[:, 1]
-    atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[:, 0]
-    atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[:, 1]
+    # atoms[links[:, L_COL_LHS], A_COL_VX] += dv[:, 0]
+    # atoms[links[:, L_COL_LHS], A_COL_VY] += dv[:, 1]
+    # atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[:, 0]
+    # atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[:, 1]
 
     return atoms, links
 
@@ -354,8 +359,8 @@ def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
     atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
     atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
 
-    atoms[:, A_COL_VX] *= 0.9  # TODO factor
-    atoms[:, A_COL_VY] *= 0.9  # TODO factor
+    atoms[:, A_COL_VX] *= 0.98  # TODO factor
+    atoms[:, A_COL_VY] *= 0.98  # TODO factor
 
     atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / CLUSTER_SIZE)
     atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / CLUSTER_SIZE)
