@@ -74,6 +74,9 @@ class Simulation:
 
         colors = ATOMS_COLORS[self._atoms[:, A_COL_TYPE].astype(np.int64)]
 
+        # if self._links.shape[0] > 0:
+        #     self._draw_links_vectorized(self._links[:, 0], self._links[:, 1])
+
         self._draw_atoms_vectorized(
             self._atoms[:, A_COL_X],
             self._atoms[:, A_COL_Y],
@@ -82,9 +85,6 @@ class Simulation:
             colors[:, 1],
             colors[:, 2],
         )
-
-        if self._links.shape[0] > 0:
-            self._draw_links_vectorized(self._links[:, 0], self._links[:, 1])
 
         self._drawer.update()
 

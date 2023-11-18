@@ -105,9 +105,11 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
 
     cluster_atoms, neighbours_atoms = atoms[cluster_mask], atoms[neighbours_mask]
 
-    mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID])
-                  | isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID]))
-    links_filtered = links[mask_links]
+    # TODO узкое место
+    # mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID])
+    #               | isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID]))
+    # links_filtered = links[mask_links]
+    links_filtered = links
 
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
@@ -357,9 +359,6 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
 
     handle_new_links(atoms, total_new_links)
-
-    if len(total_new_links) > 0:
-        print(f'new links: {len(total_new_links)}')
 
     return total_new_links[total_new_links[:, L_COL_DEL] != 1]
 
