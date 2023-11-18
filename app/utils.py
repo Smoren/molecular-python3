@@ -11,6 +11,7 @@ from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATO
 @nb.njit(
     fastmath=True,
     boundscheck=False,
+    looplift=True,
     cache=not MODE_DEBUG,
 )
 def isin(a, b):
@@ -24,6 +25,7 @@ def isin(a, b):
 
 @nb.njit(
     fastmath=True,
+    looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
@@ -43,6 +45,7 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
 
 @nb.njit(
     fastmath=True,
+    looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
@@ -60,6 +63,7 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
 
 @nb.njit(
     fastmath=True,
+    looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
@@ -85,6 +89,7 @@ def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
     ),
     fastmath=True,
+    looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
@@ -264,30 +269,17 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 
 @nb.njit(
     (
-        nb.int64[:, :]
-        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
+        nb.types.NoneType('none')
+        (nb.float64[:, :], nb.int64[:, :])
     ),
     fastmath=True,
     looplift=True,
     boundscheck=False,
-    parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
-    tasks = clusterize_tasks(atoms, links, clusters_coords)
-    new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * len(tasks)
-    for i in nb.prange(len(tasks)):
-        task_data = tasks[i]
-        cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
-        atoms[cluster_mask] = cluster_atoms
-        new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 3), dtype=np.int64)
-        for j in nb.prange(cluster_new_links.shape[0]):
-            new_links[i][j] = cluster_new_links[j]
-
-    total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
-
-    for i in nb.prange(total_new_links.shape[0]):
-        link_candidate = total_new_links[i]
+def handle_new_links(atoms: np.ndarray, links: np.ndarray):
+    for i in nb.prange(links.shape[0]):
+        link_candidate = links[i]
 
         lhs_type = int(atoms[link_candidate[L_COL_LHS], A_COL_TYPE])
         rhs_type = int(atoms[link_candidate[L_COL_RHS], A_COL_TYPE])
@@ -314,6 +306,58 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
 
         atoms[link_candidate[L_COL_LHS], int(A_COL_LINKS+1+rhs_type)] += link_plus
         atoms[link_candidate[L_COL_RHS], int(A_COL_LINKS+1+lhs_type)] += link_plus
+
+
+@nb.njit(
+    (
+        nb.types.NoneType('none')
+        (nb.float64[:, :], nb.int64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    # parallel=True,
+    cache=not MODE_DEBUG,
+)
+def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
+    for i in nb.prange(links.shape[0]):
+        link = links[i]
+
+        lhs_type = int(atoms[link[L_COL_LHS], A_COL_TYPE])
+        rhs_type = int(atoms[link[L_COL_RHS], A_COL_TYPE])
+
+        atoms[link[L_COL_LHS], A_COL_LINKS] -= 1
+        atoms[link[L_COL_RHS], A_COL_LINKS] -= 1
+
+        atoms[link[L_COL_LHS], A_COL_LINKS+1+rhs_type] -= 1
+        atoms[link[L_COL_RHS], A_COL_LINKS+1+lhs_type] -= 1
+
+
+@nb.njit(
+    (
+        nb.int64[:, :]
+        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    parallel=True,
+    cache=not MODE_DEBUG,
+)
+def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
+    tasks = clusterize_tasks(atoms, links, clusters_coords)
+    new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * len(tasks)
+    for i in nb.prange(len(tasks)):
+        task_data = tasks[i]
+        cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
+        atoms[cluster_mask] = cluster_atoms
+        new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 3), dtype=np.int64)
+        for j in nb.prange(cluster_new_links.shape[0]):
+            new_links[i][j] = cluster_new_links[j]
+
+    total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
+
+    handle_new_links(atoms, total_new_links)
 
     if len(total_new_links) > 0:
         print(f'new links: {len(total_new_links)}')
@@ -345,17 +389,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     links_to_save = links[filter_mask]
     links_to_delete = links[~filter_mask]
 
-    for i in nb.prange(links_to_delete.shape[0]):
-        link = links_to_delete[i]
-
-        lhs_type = int(atoms[link[L_COL_LHS], A_COL_TYPE])
-        rhs_type = int(atoms[link[L_COL_RHS], A_COL_TYPE])
-
-        atoms[link[L_COL_LHS], A_COL_LINKS] -= 1
-        atoms[link[L_COL_RHS], A_COL_LINKS] -= 1
-
-        atoms[link[L_COL_LHS], A_COL_LINKS+1+rhs_type] -= 1
-        atoms[link[L_COL_RHS], A_COL_LINKS+1+lhs_type] -= 1
+    handle_deleting_links(atoms, links_to_delete)
 
     return links_to_save
 
