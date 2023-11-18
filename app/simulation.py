@@ -50,7 +50,8 @@ class Simulation:
             time_sum += time.time_ns() - ts
             i += 1
             if i == time_avg_size:
-                print(f'step spent: {time_sum / time_avg_size / 1_000_000} | links: {self._links.shape[0]}')
+                step_time = round(time_sum / time_avg_size / 1_000_000)
+                print(f'step spent: {step_time} | links: {self._links.shape[0]}')
                 i, time_sum = 0, 0
 
     def stop(self):
