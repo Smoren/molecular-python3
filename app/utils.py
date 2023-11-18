@@ -191,19 +191,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         neighbours_not_linked_l = neighbours_not_bounced_l[~_mask_linked]
         ###############################
 
-        # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 30  # TODO factor
-
-        ###############################
-        neighbours_to_link = neighbours_not_linked[_mask_to_link]
-        ###############################
-
         # [Найдем ускорение отталкивания атома от столкнувшихся с ним соседей]
         _d_norm = (neighbours_bounced_d.T / neighbours_bounced_l).T
         _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.5 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
+        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 1 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -212,7 +205,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 0.5  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 4  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
@@ -220,8 +213,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
         _f2 = (_d_norm.T * neighbours_linked_l).T
-        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 0.5  # TODO factor
-        _elastic_part = np.sum(_f2, axis=0) * 0.001  # TODO factor
+        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 4  # TODO factor
+        _elastic_part = np.sum(_f2, axis=0) * 0.008  # TODO factor
 
         ###############################
         dv_gravity_linked = _gravity_part + _elastic_part
@@ -235,6 +228,13 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
         if atom_links.shape[0] > max_atom_links:
             continue
+
+        # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
+        _mask_to_link = neighbours_not_linked_l < 30  # TODO factor
+
+        ###############################
+        neighbours_to_link = neighbours_not_linked[_mask_to_link]
+        ###############################
 
         # [Создаем новые связи]
         new_atom_links = np.empty(shape=(neighbours_to_link.shape[0], 3), dtype=np.int64)
@@ -332,7 +332,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     # parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
 
@@ -346,19 +346,16 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     links_to_delete = links[~filter_mask]
 
     for i in nb.prange(links_to_delete.shape[0]):
-        link = links_to_save[i]
-
-        lhs_id = int(atoms[link[L_COL_LHS], A_COL_ID])
-        rhs_id = int(atoms[link[L_COL_RHS], A_COL_ID])
+        link = links_to_delete[i]
 
         lhs_type = int(atoms[link[L_COL_LHS], A_COL_TYPE])
         rhs_type = int(atoms[link[L_COL_RHS], A_COL_TYPE])
 
-        atoms[lhs_id, A_COL_LINKS] -= 1
-        atoms[rhs_id, A_COL_LINKS] -= 1
+        atoms[link[L_COL_LHS], A_COL_LINKS] -= 1
+        atoms[link[L_COL_RHS], A_COL_LINKS] -= 1
 
-        atoms[lhs_id, A_COL_LINKS+1+rhs_type] -= 1
-        atoms[rhs_id, A_COL_LINKS+1+lhs_type] -= 1
+        atoms[link[L_COL_LHS], A_COL_LINKS+1+rhs_type] -= 1
+        atoms[link[L_COL_RHS], A_COL_LINKS+1+lhs_type] -= 1
 
     return links_to_save
 

@@ -1,5 +1,5 @@
 import time
-from typing import Tuple, Set, Dict, Callable
+from typing import Tuple, Callable
 
 import numpy as np
 import pygame
@@ -19,7 +19,6 @@ class Simulation:
     _atoms: np.ndarray
     _max_coord: np.ndarray
     _links: np.ndarray
-    _atom_links: Dict[int, Set[Tuple[int, int]]]
     _draw_atoms_vectorized: Callable
     _draw_links_vectorized: Callable
 
@@ -30,7 +29,6 @@ class Simulation:
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
         self._links = np.empty(shape=(0, 3), dtype=np.int64)
-        self._atom_links = dict()
         self._draw_atoms_vectorized = np.vectorize(self._drawer.draw_circle)
         self._draw_links_vectorized = np.vectorize(self._draw_link)
 
