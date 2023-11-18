@@ -313,20 +313,6 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     filter_mask = l < 500  # TODO factor
     links = links[filter_mask]
 
-    d = d[filter_mask]
-    l = l[filter_mask]
-
-    nd = (d.T / l).T
-    dv = nd * 0.05 + d * 0.01  # TODO factor
-    # dv = nd * 0.1
-    # dv = d * 0.01
-
-    # TODO WTF???
-    # atoms[links[:, L_COL_LHS], A_COL_VX] += dv[:, 0]
-    # atoms[links[:, L_COL_LHS], A_COL_VY] += dv[:, 1]
-    # atoms[links[:, L_COL_RHS], A_COL_VX] -= dv[:, 0]
-    # atoms[links[:, L_COL_RHS], A_COL_VY] -= dv[:, 1]
-
     return atoms, links
 
 
