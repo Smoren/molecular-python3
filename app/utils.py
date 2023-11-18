@@ -201,7 +201,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 1 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
+        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.2 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -213,7 +213,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 3  # TODO factor
         ###############################
 
-        # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
+        # [Найдем ускорение взаимодействий атома со связанными соседями]
         _mult = ATOMS_LINK_GRAVITY[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
@@ -316,7 +316,6 @@ def handle_new_links(atoms: np.ndarray, links: np.ndarray):
     fastmath=True,
     looplift=True,
     boundscheck=False,
-    # parallel=True,
     cache=not MODE_DEBUG,
 )
 def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
@@ -373,7 +372,6 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     fastmath=True,
     looplift=True,
     boundscheck=False,
-    # parallel=True,
     cache=not MODE_DEBUG,
 )
 def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
