@@ -7,6 +7,7 @@ A_COL_R = 5
 A_COL_CX = 6
 A_COL_CY = 7
 A_COL_TYPE = 8
+A_COL_LINKS = 9
 
 L_COL_LHS = 0
 L_COL_RHS = 1
