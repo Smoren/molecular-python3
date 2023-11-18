@@ -8,11 +8,11 @@ from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_
 from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATOMS_LINK_GRAVITY, ATOMS_LINK_TYPES
 
 
-# @nb.njit(
-#     fastmath=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def isin(a, b):
     # out = np.empty(a.shape[0], dtype=nb.boolean)
     out = np.empty(a.shape[0], dtype=np.bool_)
@@ -22,11 +22,11 @@ def isin(a, b):
     return out
 
 
-# @nb.njit(
-#     fastmath=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
     assert arr.ndim == 2
     assert axis in [0, 1]
@@ -41,11 +41,11 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
     return result
 
 
-# @nb.njit(
-#     fastmath=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def np_unique_links(arr: np.ndarray) -> np.ndarray:
     assert arr.ndim == 2
 
@@ -58,11 +58,11 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
     return np.array(list(result))
 
 
-# @nb.njit(
-#     fastmath=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
     total_len = 0
     for i in nb.prange(len(arrays)):
@@ -79,15 +79,15 @@ def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.
     return result
 
 
-# @nb.njit(
-#     (
-#         nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-#         (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
-#     ),
-#     fastmath=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
+        (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
+    ),
+    fastmath=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
@@ -107,30 +107,30 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
 
-# @nb.njit(
-#     (
-#         nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])))
-#         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])))
+        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> list:
     return [get_cluster_task_data(atoms, links, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
 
 
-# @nb.njit(
-#     (
-#         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-#         (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
+        (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
     coords_columns = np.array([A_COL_X, A_COL_Y])
     new_links = nb.typed.List.empty_list(nb.int64[:, :])
@@ -192,7 +192,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 500  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < 30  # TODO factor
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -245,10 +245,12 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         # [Если кандидаты есть]
         if new_atom_links.shape[0] > 0:
             # [Отсортируем ID в кортежах связей по возрастанию]
+            _id_cols = np.array([0, 1])
+
             new_atom_links[:, 0], new_atom_links[:, 1] = np_apply_reducer(
-                new_atom_links[:, [0, 1]], np.min, axis=1,
+                new_atom_links[:, _id_cols], np.min, axis=1,
             ), np_apply_reducer(
-                new_atom_links[:, [0, 1]], np.max, axis=1,
+                new_atom_links[:, _id_cols], np.max, axis=1,
             )
 
             # [Ограничим количество новых связей общим лимитом и добавим в выборку]
@@ -260,17 +262,17 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
     return cluster_atoms, new_links_total, cluster_mask
 
 
-# @nb.njit(
-#     (
-#         nb.int64[:, :]
-#         (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     parallel=True,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.int64[:, :]
+        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    parallel=True,
+    cache=not MODE_DEBUG,
+)
 def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
     tasks = clusterize_tasks(atoms, links, clusters_coords)
     new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * len(tasks)
@@ -319,17 +321,17 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
     return total_new_links[total_new_links[:, L_COL_DEL] != 1]
 
 
-# @nb.njit(
-#     (
-#         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :]))
-#         (nb.float64[:, :], nb.int64[:, :])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     # parallel=True,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.int64[:, :]
+        (nb.float64[:, :], nb.int64[:, :])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    # parallel=True,
+    cache=not MODE_DEBUG,
+)
 def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
@@ -339,22 +341,38 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> Tuple[np.ndarray, np
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = np.sqrt(l2)
 
-    filter_mask = l < 500  # TODO factor
-    links = links[filter_mask]
+    filter_mask = l < 50  # TODO factor
+    links_to_save = links[filter_mask]
+    links_to_delete = links[~filter_mask]
 
-    return atoms, links
+    for i in nb.prange(links_to_delete.shape[0]):
+        link = links_to_save[i]
+
+        lhs_id = int(atoms[link[L_COL_LHS], A_COL_ID])
+        rhs_id = int(atoms[link[L_COL_RHS], A_COL_ID])
+
+        lhs_type = int(atoms[link[L_COL_LHS], A_COL_TYPE])
+        rhs_type = int(atoms[link[L_COL_RHS], A_COL_TYPE])
+
+        atoms[lhs_id, A_COL_LINKS] -= 1
+        atoms[rhs_id, A_COL_LINKS] -= 1
+
+        atoms[lhs_id, A_COL_LINKS+1+rhs_type] -= 1
+        atoms[rhs_id, A_COL_LINKS+1+lhs_type] -= 1
+
+    return links_to_save
 
 
-# @nb.njit(
-#     (
-#         nb.types.NoneType('none')
-#         (nb.float64[:, :], nb.int64[:])
-#     ),
-#     fastmath=True,
-#     looplift=True,
-#     boundscheck=False,
-#     cache=not MODE_DEBUG,
-# )
+@nb.njit(
+    (
+        nb.types.NoneType('none')
+        (nb.float64[:, :], nb.int64[:])
+    ),
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    cache=not MODE_DEBUG,
+)
 def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
     atoms[:, A_COL_X] += atoms[:, A_COL_VX]
     atoms[:, A_COL_Y] += atoms[:, A_COL_VY]
