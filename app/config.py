@@ -2,7 +2,7 @@ import numpy as np
 
 MODE_DEBUG = True
 
-ATOMS_COUNT = 5000
+ATOMS_COUNT = 2000
 WINDOW_SIZE = (1920, 1000)
 
 CLUSTER_SIZE = 100

@@ -210,7 +210,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 4  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 3  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома со связанными соседями]
@@ -218,8 +218,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
         _f2 = (_d_norm.T * neighbours_linked_l).T
-        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 4  # TODO factor
-        _elastic_part = np.sum(_f2, axis=0) * 0.008  # TODO factor
+        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 3  # TODO factor
+        _elastic_part = np.sum(_f2, axis=0) * 0.04  # TODO factor
 
         ###############################
         dv_gravity_linked = _gravity_part + _elastic_part

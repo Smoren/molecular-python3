@@ -16,7 +16,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Radius
-        np.repeat(3, size).astype('float'),
+        np.repeat(4, size).astype('float'),
         # Cluster
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
