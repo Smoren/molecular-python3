@@ -421,8 +421,8 @@ def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
     atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
     atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
 
-    atoms[:, A_COL_VX] *= 0.98  # TODO factor
-    atoms[:, A_COL_VY] *= 0.98  # TODO factor
+    atoms[:, A_COL_VX] *= 0.9  # TODO factor
+    atoms[:, A_COL_VY] *= 0.9  # TODO factor
 
     atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / CLUSTER_SIZE)
     atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / CLUSTER_SIZE)
