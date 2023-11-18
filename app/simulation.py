@@ -29,7 +29,7 @@ class Simulation:
         self._screen = pygame.display.set_mode(window_size)
         self._drawer = Drawer(self._screen)
         self._clock = pygame.time.Clock()
-        self._links = np.empty(shape=(0, 2), dtype=np.int64)
+        self._links = np.empty(shape=(0, 3), dtype=np.int64)
         self._atom_links = dict()
         self._draw_atoms_vectorized = np.vectorize(self._drawer.draw_circle)
         self._draw_links_vectorized = np.vectorize(self._draw_link)
