@@ -140,7 +140,7 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
 )
 def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
     coords_columns = np.array([A_COL_X, A_COL_Y])
-    new_links = nb.typed.List.empty_list(nb.int64[:, :])
+    new_links = nb.typed.List.empty_list(nb.int64[:, :], allocated=cluster_atoms.shape[0])
 
     for i in nb.prange(cluster_atoms.shape[0]):
         atom = cluster_atoms[i]
