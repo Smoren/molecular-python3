@@ -34,6 +34,7 @@ class Simulation:
 
     def start(self):
         self._is_stopped = False
+        i, time_sum, time_avg_size = 0, 0, 10
         while not self._is_stopped:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -45,7 +46,12 @@ class Simulation:
             self._step_interact_links()
             self._step_display()
             self._clock.tick(30)
-            print(f'step spent: {(time.time_ns() - ts) / 1_000_000} | links: {self._links.shape[0]}')
+
+            time_sum += time.time_ns() - ts
+            i += 1
+            if i == time_avg_size:
+                print(f'step spent: {time_sum / time_avg_size / 1_000_000} | links: {self._links.shape[0]}')
+                i, time_sum = 0, 0
 
     def stop(self):
         self._is_stopped = True
