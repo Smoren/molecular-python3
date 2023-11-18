@@ -201,7 +201,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.2 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
+        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.3 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -210,7 +210,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 3  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 10  # TODO factor
         ###############################
 
         # [Найдем ускорение взаимодействий атома со связанными соседями]
@@ -218,8 +218,8 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
         _f2 = (_d_norm.T * neighbours_linked_l).T
-        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 3  # TODO factor
-        _elastic_part = np.sum(_f2, axis=0) * 0.04  # TODO factor
+        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 10  # TODO factor
+        _elastic_part = np.sum(_f2, axis=0) * 0.16  # TODO factor
 
         ###############################
         dv_gravity_linked = _gravity_part + _elastic_part
