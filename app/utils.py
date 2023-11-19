@@ -5,7 +5,8 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
     A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
-from app.config import MODE_DEBUG
+from app.config import MODE_DEBUG, FORCE_BOUNCE_ELASTIC, FORCE_NOT_LINKED_GRAVITY, FORCE_LINKED_GRAVITY, \
+    FORCE_LINKED_ELASTIC, MIN_LINK_DISTANCE, MAX_LINK_DISTANCE, INERTIAL_FACTOR
 
 
 @nb.njit(
@@ -200,7 +201,9 @@ def interact_cluster(
         _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * 0.3 if _d_norm.shape[0] > 0 else np.array([0, 0], dtype=np.float64)  # TODO factor
+        dv_elastic = np.sum((_d_norm.T*_k).T, axis=0) * FORCE_BOUNCE_ELASTIC \
+            if _d_norm.shape[0] > 0 \
+            else np.array([0, 0], dtype=np.float64)
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -212,7 +215,7 @@ def interact_cluster(
         _f = (_d_norm.T / neighbours_not_linked_l * _m2).T / _m1  # l2 вместо l ???
 
         ###############################
-        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 10  # TODO factor
+        dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * FORCE_NOT_LINKED_GRAVITY
         ###############################
 
         # [Найдем ускорение взаимодействий атома со связанными соседями]
@@ -220,8 +223,8 @@ def interact_cluster(
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
         _f2 = (_d_norm.T * neighbours_linked_l).T
-        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * 10  # TODO factor
-        _elastic_part = np.sum(_f2, axis=0) * 0.16  # TODO factor
+        _gravity_part = np.sum((_f1.T * _mult).T, axis=0) * FORCE_LINKED_GRAVITY
+        _elastic_part = np.sum(_f2, axis=0) * FORCE_LINKED_ELASTIC
 
         ###############################
         dv_gravity_linked = _gravity_part + _elastic_part
@@ -237,7 +240,7 @@ def interact_cluster(
             continue
 
         # [Из не связанных с атомом соседей найдем те, с которыми построим новые связи]
-        _mask_to_link = neighbours_not_linked_l < 30  # TODO factor
+        _mask_to_link = neighbours_not_linked_l < MIN_LINK_DISTANCE
 
         ###############################
         neighbours_to_link = neighbours_not_linked[_mask_to_link]
@@ -402,7 +405,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = np.sqrt(l2)
 
-    filter_mask = l < 50  # TODO factor
+    filter_mask = l < MAX_LINK_DISTANCE
     links_to_save = links[filter_mask]
     links_to_delete = links[~filter_mask]
 
@@ -444,8 +447,8 @@ def apply_speed(
     atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
     atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
 
-    atoms[:, A_COL_VX] *= 0.9  # TODO factor
-    atoms[:, A_COL_VY] *= 0.9  # TODO factor
+    atoms[:, A_COL_VX] *= INERTIAL_FACTOR
+    atoms[:, A_COL_VY] *= INERTIAL_FACTOR
 
     atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / cluster_size)
     atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / cluster_size)
