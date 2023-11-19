@@ -3,17 +3,16 @@ from typing import Tuple, Callable
 
 import numpy as np
 import pygame
-import numba as nb
 
-from app.config import ATOMS_COLORS, MODE_DEBUG
+from app.config import ATOMS_COLORS
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
-from app.drawer import Drawer
+from app.screen import Screen
 from app.utils import interact_atoms, apply_speed, interact_links
 
 
 class Simulation:
     _screen: pygame.Surface
-    _drawer: Drawer
+    _drawer: Screen
     _clock: pygame.time.Clock
     _is_stopped: bool = False
     _atoms: np.ndarray
@@ -26,7 +25,7 @@ class Simulation:
         self._atoms = atoms
         self._max_coord = np.array(max_coord)
         self._screen = pygame.display.set_mode(window_size)
-        self._drawer = Drawer(self._screen)
+        self._drawer = Screen(self._screen)
         self._clock = pygame.time.Clock()
         self._links = np.empty(shape=(0, 3), dtype=np.int64)
 
@@ -37,6 +36,19 @@ class Simulation:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     self.stop()
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        self._drawer.move_offset(100, 0)
+                    elif event.key == pygame.K_RIGHT:
+                        self._drawer.move_offset(-100, 0)
+                    elif event.key == pygame.K_UP:
+                        self._drawer.move_offset(0, 100)
+                    elif event.key == pygame.K_DOWN:
+                        self._drawer.move_offset(0, -100)
+                    elif event.key == pygame.K_EQUALS:
+                        self._drawer.move_scale(1.1)
+                    elif event.key == pygame.K_MINUS:
+                        self._drawer.move_scale(0.9)
 
             ts = time.time_ns()
             self._step_move()
@@ -67,13 +79,6 @@ class Simulation:
     def _step_move(self) -> None:
         apply_speed(self._atoms, self._max_coord)
 
-    @nb.jit(
-        forceobj=True,
-        fastmath=True,
-        looplift=True,
-        boundscheck=False,
-        cache=not MODE_DEBUG,
-    )
     def _step_display(self) -> None:
         self._drawer.clear()
 
@@ -82,13 +87,6 @@ class Simulation:
 
         self._drawer.update()
 
-    @nb.jit(
-        forceobj=True,
-        fastmath=True,
-        looplift=True,
-        boundscheck=False,
-        cache=not MODE_DEBUG,
-    )
     def _display_atoms(self):
         colors = ATOMS_COLORS[self._atoms[:, A_COL_TYPE].astype(np.int64)]
         self._drawer.draw_circles_vectorized(
@@ -100,13 +98,6 @@ class Simulation:
             colors[:, 2],
         )
 
-    @nb.jit(
-        forceobj=True,
-        fastmath=True,
-        looplift=True,
-        boundscheck=False,
-        cache=not MODE_DEBUG,
-    )
     def _display_links(self):
         if self._links.shape[0] == 0:
             return
