@@ -6,7 +6,7 @@ import pygame
 
 from app.config import ATOMS_COLORS, MIN_INTERATION_DISTANCE, ATOMS_GRAVITY, ATOMS_LINK_GRAVITY, ATOMS_LINKS, \
     ATOMS_LINK_TYPES, FORCE_BOUNCE_ELASTIC, FORCE_NOT_LINKED_GRAVITY, FORCE_LINKED_GRAVITY, MIN_LINK_DISTANCE, \
-    FORCE_LINKED_ELASTIC, MAX_LINK_DISTANCE, INERTIAL_FACTOR
+    FORCE_LINKED_ELASTIC, MAX_LINK_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
 from app.screen import Screen
 from app.utils import interact_atoms, apply_speed, interact_links
@@ -84,7 +84,7 @@ class Simulation:
         self._links = interact_links(self._atoms, self._links, MAX_LINK_DISTANCE)
 
     def _step_move(self) -> None:
-        apply_speed(self._atoms, self._max_coord, MIN_INTERATION_DISTANCE, INERTIAL_FACTOR)
+        apply_speed(self._atoms, self._max_coord, MIN_INTERATION_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED)
 
     def _step_display(self) -> None:
         self._drawer.clear()

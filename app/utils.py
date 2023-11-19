@@ -430,7 +430,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: floa
 @nb.njit(
     (
         nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:], nb.int64, nb.float64)
+        (nb.float64[:, :], nb.int64[:], nb.int64, nb.float64, nb.float64)
     ),
     fastmath=True,
     looplift=True,
@@ -442,9 +442,10 @@ def apply_speed(
     max_coord: np.ndarray,
     cluster_size: int,
     inertial_factor: float,
+    simulation_speed: float,
 ) -> None:
-    atoms[:, A_COL_X] += atoms[:, A_COL_VX]
-    atoms[:, A_COL_Y] += atoms[:, A_COL_VY]
+    atoms[:, A_COL_X] += atoms[:, A_COL_VX] * simulation_speed
+    atoms[:, A_COL_Y] += atoms[:, A_COL_VY] * simulation_speed
 
     mask_x_min = atoms[:, A_COL_X] < 0
     mask_y_min = atoms[:, A_COL_Y] < 0
