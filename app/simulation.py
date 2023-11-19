@@ -99,14 +99,21 @@ class Simulation:
         if self._links.shape[0] == 0:
             return
 
-        lhs_coords = self._atoms[self._links[:, L_COL_LHS]][:, [A_COL_X, A_COL_Y]]
-        rhs_coords = self._atoms[self._links[:, L_COL_RHS]][:, [A_COL_X, A_COL_Y]]
+        lhs_coord_x = self._atoms[self._links[:, L_COL_LHS], A_COL_X]
+        lhs_coord_y = self._atoms[self._links[:, L_COL_LHS], A_COL_Y]
+        rhs_coord_x = self._atoms[self._links[:, L_COL_RHS], A_COL_X]
+        rhs_coord_y = self._atoms[self._links[:, L_COL_RHS], A_COL_Y]
 
         lhs_colors = ATOMS_COLORS[self._atoms[self._links[:, L_COL_LHS], A_COL_TYPE].astype(np.int64)]
         rhs_colors = ATOMS_COLORS[self._atoms[self._links[:, L_COL_RHS], A_COL_TYPE].astype(np.int64)]
         colors = np.average([lhs_colors, rhs_colors], axis=0)
 
-        # self._display_links_vectorized(lhs_coords, rhs_coords, colors)
-
-        for i in nb.prange(self._links.shape[0]):
-            self._drawer.draw_line(lhs_coords[i], rhs_coords[i], colors[i])
+        self._drawer.draw_lines_vectorized(
+            lhs_coord_x,
+            lhs_coord_y,
+            rhs_coord_x,
+            rhs_coord_y,
+            colors[:, 0],
+            colors[:, 1],
+            colors[:, 2],
+        )

@@ -22,8 +22,13 @@ class Drawer:
     def draw_circle(self, center_x: float, center_y: float, radius: int, color_r: int, color_g: int, color_b: int) -> None:
         pygame.draw.circle(self._screen, (color_r, color_g, color_b), (center_x, center_y), radius)
 
-    def draw_line(self, start: np.ndarray, end: np.ndarray, color: np.ndarray) -> None:
-        pygame.draw.line(self._screen, color, start, end)
+    def draw_line(self, start_x: float, start_y: float, end_x: float, end_y: float, color_r: int, color_g: int, color_b: int) -> None:
+        pygame.draw.line(
+            self._screen,
+            (color_r, color_g, color_b),
+            (start_x, start_y),
+            (end_x, end_y),
+        )
 
     @staticmethod
     def update() -> None:
