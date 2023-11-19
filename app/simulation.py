@@ -13,8 +13,7 @@ from app.utils import interact_atoms, apply_speed, interact_links
 
 
 class Simulation:
-    _screen: pygame.Surface
-    _drawer: Screen
+    _screen: Screen
     _clock: pygame.time.Clock
     _is_stopped: bool = False
     _atoms: np.ndarray
@@ -26,8 +25,7 @@ class Simulation:
     def __init__(self, atoms: np.ndarray, window_size: Tuple[int, int], max_coord: Tuple[int, int]):
         self._atoms = atoms
         self._max_coord = np.array(max_coord)
-        self._screen = pygame.display.set_mode(window_size)
-        self._drawer = Screen(self._screen)
+        self._screen = Screen(pygame.display.set_mode(window_size))
         self._clock = pygame.time.Clock()
         self._links = np.empty(shape=(0, 3), dtype=np.int64)
 
@@ -40,17 +38,17 @@ class Simulation:
                     self.stop()
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
-                        self._drawer.move_offset(100, 0)
+                        self._screen.move_offset(100, 0)
                     elif event.key == pygame.K_RIGHT:
-                        self._drawer.move_offset(-100, 0)
+                        self._screen.move_offset(-100, 0)
                     elif event.key == pygame.K_UP:
-                        self._drawer.move_offset(0, 100)
+                        self._screen.move_offset(0, 100)
                     elif event.key == pygame.K_DOWN:
-                        self._drawer.move_offset(0, -100)
+                        self._screen.move_offset(0, -100)
                     elif event.key == pygame.K_EQUALS:
-                        self._drawer.move_scale(1.1)
+                        self._screen.move_scale(1.1)
                     elif event.key == pygame.K_MINUS:
-                        self._drawer.move_scale(0.9)
+                        self._screen.move_scale(0.9)
 
             ts = time.time_ns()
             self._step_move()
@@ -87,16 +85,16 @@ class Simulation:
         apply_speed(self._atoms, self._max_coord, MIN_INTERATION_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED)
 
     def _step_display(self) -> None:
-        self._drawer.clear()
+        self._screen.clear()
 
         self._display_links()
         self._display_atoms()
 
-        self._drawer.update()
+        self._screen.update()
 
     def _display_atoms(self):
         colors = ATOMS_COLORS[self._atoms[:, A_COL_TYPE].astype(np.int64)]
-        self._drawer.draw_circles_vectorized(
+        self._screen.draw_circles_vectorized(
             self._atoms[:, A_COL_X],
             self._atoms[:, A_COL_Y],
             self._atoms[:, A_COL_R],
@@ -118,7 +116,7 @@ class Simulation:
         rhs_colors = ATOMS_COLORS[self._atoms[self._links[:, L_COL_RHS], A_COL_TYPE].astype(np.int64)]
         colors = np.average([lhs_colors, rhs_colors], axis=0)
 
-        self._drawer.draw_lines_vectorized(
+        self._screen.draw_lines_vectorized(
             lhs_coord_x,
             lhs_coord_y,
             rhs_coord_x,
