@@ -2,10 +2,13 @@ from typing import Tuple
 
 import numpy as np
 
-from app.config import ATOMS_COLORS
+from app.config import ATOMS_COLORS, ATOMS_RADIUS
 
 
 def generate_atoms(size: int, max_coord: Tuple[int, int]):
+    types = np.random.randint(low=0, high=len(ATOMS_COLORS), size=size)
+    radius = ATOMS_RADIUS[types]
+
     return np.array([
         # ID
         np.arange(0, size),
@@ -16,12 +19,12 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Radius
-        np.repeat(4, size).astype('float'),
+        radius.astype('float'),  # np.random.randint(low=2, high=8, size=size).astype('float'),
         # Cluster
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Type
-        np.random.randint(low=0, high=len(ATOMS_COLORS), size=size).astype('float'),
+        types.astype('float'),  # np.random.randint(low=0, high=len(ATOMS_COLORS), size=size).astype('float'),
         # Links counter
         np.repeat(0, size).astype('float'),
         # Links type counters

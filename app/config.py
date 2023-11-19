@@ -36,3 +36,4 @@ ATOMS_COLORS = np.array([
     [200, 140, 100],
     [80, 170, 140],
 ])
+ATOMS_RADIUS = np.array([4, 5, 3])

@@ -221,7 +221,10 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
         _mult = ATOMS_GRAVITY[int(atom[A_COL_TYPE]), neighbours_not_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_not_linked_d.T / neighbours_not_linked_l).T
-        _f = (_d_norm.T / neighbours_not_linked_l).T  # l2 вместо l ???
+        _m1 = np.pi * atom[A_COL_R] ** 2
+        _m2 = np.pi * (neighbours_not_linked[:, A_COL_R].T ** 2).T
+
+        _f = (_d_norm.T / neighbours_not_linked_l * _m2).T / _m1  # l2 вместо l ???
 
         ###############################
         dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * 10  # TODO factor
