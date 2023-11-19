@@ -130,13 +130,6 @@ def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.n
     #     nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])),
     #     allocated=clusters_coords.shape[0],
     # )
-    # t = get_cluster_task_data(atoms, links, clusters_coords[0])
-    # tasks = [t for _ in range(clusters_coords.shape[0])]
-    #
-    # for i in nb.prange(1, clusters_coords.shape[0]):
-    #     t = get_cluster_task_data(atoms, links, clusters_coords[i])
-    #     tasks[i] = t
-    # return tasks
     return [get_cluster_task_data(atoms, links, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
 
 
@@ -361,7 +354,15 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     cache=not MODE_DEBUG,
 )
 def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
-    tasks = clusterize_tasks(atoms, links, clusters_coords)
+    # tasks = clusterize_tasks(atoms, links, clusters_coords)
+
+    t = get_cluster_task_data(atoms, links, clusters_coords[0])
+    tasks = [t] * clusters_coords.shape[0]
+
+    for i in nb.prange(1, clusters_coords.shape[0]):
+        t = get_cluster_task_data(atoms, links, clusters_coords[i])
+        tasks[i] = t
+
     new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * len(tasks)
     for i in nb.prange(len(tasks)):
         task_data = tasks[i]
