@@ -1,11 +1,11 @@
-from typing import List, Callable, Tuple
+from typing import List, Callable
 
 import numpy as np
 import numba as nb
 
-from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, A_COL_TYPE, A_COL_R, A_COL_ID, \
-    L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
-from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATOMS_LINK_GRAVITY, ATOMS_LINK_TYPES
+from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
+    A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
+from app.config import MODE_DEBUG
 
 
 @nb.njit(
@@ -15,7 +15,6 @@ from app.config import ATOMS_GRAVITY, CLUSTER_SIZE, MODE_DEBUG, ATOMS_LINKS, ATO
     cache=not MODE_DEBUG,
 )
 def isin(a, b):
-    # out = np.empty(a.shape[0], dtype=nb.boolean)
     out = np.empty(a.shape[0], dtype=np.bool_)
     b = set(b)
     for i in nb.prange(a.shape[0]):
@@ -117,14 +116,26 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
 @nb.njit(
     (
         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-        (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
+        (
+            nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:],
+            nb.int64, nb.float64[:, :], nb.float64[:, :], nb.int64[:]
+        )
     ),
     fastmath=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, links: np.ndarray, cluster_mask: np.ndarray):
+def interact_cluster(
+    cluster_atoms: np.ndarray,
+    neighbour_atoms: np.ndarray,
+    links: np.ndarray,
+    cluster_mask: np.ndarray,
+    cluster_size: int,
+    atoms_gravity: np.ndarray,
+    atoms_link_gravity: np.ndarray,
+    atoms_links: np.ndarray,
+):
     coords_columns = np.array([A_COL_X, A_COL_Y])
     new_links = nb.typed.List.empty_list(nb.int64[:, :], allocated=cluster_atoms.shape[0])
 
@@ -138,7 +149,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         _d = neighbours[:, coords_columns] - atom[coords_columns]
         _l2 = _d[:, 0] ** 2 + _d[:, 1] ** 2
         _l = np.sqrt(_l2)
-        _mask_in_radius = _l <= CLUSTER_SIZE
+        _mask_in_radius = _l <= cluster_size
 
         ###############################
         neighbours = neighbours[_mask_in_radius]
@@ -193,7 +204,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
-        _mult = ATOMS_GRAVITY[int(atom[A_COL_TYPE]), neighbours_not_linked[:, A_COL_TYPE].astype(np.int64)]
+        _mult = atoms_gravity[int(atom[A_COL_TYPE]), neighbours_not_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_not_linked_d.T / neighbours_not_linked_l).T
         _m1 = np.pi * atom[A_COL_R] ** 2
         _m2 = np.pi * (neighbours_not_linked[:, A_COL_R].T ** 2).T
@@ -205,7 +216,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         ###############################
 
         # [Найдем ускорение взаимодействий атома со связанными соседями]
-        _mult = ATOMS_LINK_GRAVITY[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
+        _mult = atoms_link_gravity[int(atom[A_COL_TYPE]), neighbours_linked[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_linked_d.T / neighbours_linked_l).T
         _f1 = (_d_norm.T / neighbours_linked_l).T  # l2 вместо l ???
         _f2 = (_d_norm.T * neighbours_linked_l).T
@@ -221,7 +232,7 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
         atom[A_COL_VY] += dv_elastic[1] + dv_gravity_not_linked[1] + dv_gravity_linked[1]
 
         # [Если связи заполнены, делать больше нечего]
-        max_atom_links = ATOMS_LINKS[int(atom[A_COL_TYPE])]
+        max_atom_links = atoms_links[int(atom[A_COL_TYPE])]
         if atom_links.shape[0] > max_atom_links:
             continue
 
@@ -261,14 +272,19 @@ def interact_cluster(cluster_atoms: np.ndarray, neighbour_atoms: np.ndarray, lin
 @nb.njit(
     (
         nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:, :])
+        (nb.float64[:, :], nb.int64[:, :], nb.int64[:], nb.int64[:, :])
     ),
     fastmath=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def handle_new_links(atoms: np.ndarray, links: np.ndarray):
+def handle_new_links(
+    atoms: np.ndarray,
+    links: np.ndarray,
+    atoms_links: np.ndarray,
+    atoms_link_types: np.ndarray,
+):
     for i in nb.prange(links.shape[0]):
         link_candidate = links[i]
 
@@ -280,10 +296,10 @@ def handle_new_links(atoms: np.ndarray, links: np.ndarray):
         lhs_type_links = atoms[link_candidate[L_COL_LHS], A_COL_LINKS+1+rhs_type]
         rhs_type_links = atoms[link_candidate[L_COL_RHS], A_COL_LINKS+1+lhs_type]
 
-        lhs_total_links_max = ATOMS_LINKS[lhs_type]
-        rhs_total_links_max = ATOMS_LINKS[rhs_type]
-        lhs_type_links_max = ATOMS_LINK_TYPES[lhs_type][rhs_type]
-        rhs_type_links_max = ATOMS_LINK_TYPES[rhs_type][lhs_type]
+        lhs_total_links_max = atoms_links[lhs_type]
+        rhs_total_links_max = atoms_links[rhs_type]
+        lhs_type_links_max = atoms_link_types[lhs_type][rhs_type]
+        rhs_type_links_max = atoms_link_types[rhs_type][lhs_type]
 
         can_link = lhs_total_links < lhs_total_links_max and \
             rhs_total_links < rhs_total_links_max and \
@@ -326,7 +342,10 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
 @nb.njit(
     (
         nb.int64[:, :]
-        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
+        (
+            nb.float64[:, :], nb.int64[:, :], nb.float64[:, :],
+            nb.int64, nb.float64[:, :], nb.float64[:, :], nb.int64[:], nb.int64[:, :],
+        )
     ),
     fastmath=True,
     looplift=True,
@@ -334,11 +353,24 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     parallel=True,
     cache=not MODE_DEBUG,
 )
-def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
+def interact_atoms(
+    atoms: np.ndarray,
+    links: np.ndarray,
+    clusters_coords: np.ndarray,
+    cluster_size: int,
+    atoms_gravity: np.ndarray,
+    atoms_link_gravity: np.ndarray,
+    atoms_links: np.ndarray,
+    atom_link_types: np.ndarray,
+) -> np.ndarray:
     new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * clusters_coords.shape[0]
     for i in nb.prange(clusters_coords.shape[0]):
         task_data = get_cluster_task_data(atoms, links, clusters_coords[i])
-        cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
+        cluster_atoms, neighbours_atoms, links_filtered, cluster_mask = task_data
+        cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(
+            cluster_atoms, neighbours_atoms, links_filtered, cluster_mask,
+            cluster_size, atoms_gravity, atoms_link_gravity, atoms_links,
+        )
         atoms[cluster_mask] = cluster_atoms
         new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 3), dtype=np.int64)
         for j in range(cluster_new_links.shape[0]):
@@ -346,7 +378,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
 
     total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
 
-    handle_new_links(atoms, total_new_links)
+    handle_new_links(atoms, total_new_links, atoms_links, atom_link_types)
 
     return total_new_links[total_new_links[:, L_COL_DEL] != 1]
 
@@ -382,14 +414,18 @@ def interact_links(atoms: np.ndarray, links: np.ndarray) -> np.ndarray:
 @nb.njit(
     (
         nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:])
+        (nb.float64[:, :], nb.int64[:], nb.int64)
     ),
     fastmath=True,
     looplift=True,
     boundscheck=False,
     cache=not MODE_DEBUG,
 )
-def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
+def apply_speed(
+    atoms: np.ndarray,
+    max_coord: np.ndarray,
+    cluster_size: int,
+) -> None:
     atoms[:, A_COL_X] += atoms[:, A_COL_VX]
     atoms[:, A_COL_Y] += atoms[:, A_COL_VY]
 
@@ -411,5 +447,5 @@ def apply_speed(atoms: np.ndarray, max_coord: np.ndarray) -> None:
     atoms[:, A_COL_VX] *= 0.9  # TODO factor
     atoms[:, A_COL_VY] *= 0.9  # TODO factor
 
-    atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / CLUSTER_SIZE)
-    atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / CLUSTER_SIZE)
+    atoms[:, A_COL_CX] = np.floor(atoms[:, A_COL_X] / cluster_size)
+    atoms[:, A_COL_CY] = np.floor(atoms[:, A_COL_Y] / cluster_size)
