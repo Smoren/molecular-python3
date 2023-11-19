@@ -1,6 +1,6 @@
 import numpy as np
 
-MODE_DEBUG = True
+MODE_DEBUG = False
 
 ATOMS_COUNT = 7000
 WINDOW_SIZE = (1920, 1080)

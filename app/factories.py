@@ -19,12 +19,12 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Radius
-        radius.astype('float'),  # np.random.randint(low=2, high=8, size=size).astype('float'),
+        radius.astype('float'),
         # Cluster
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Type
-        types.astype('float'),  # np.random.randint(low=0, high=len(ATOMS_COLORS), size=size).astype('float'),
+        types.astype('float'),
         # Links counter
         np.repeat(0, size).astype('float'),
         # Links type counters
