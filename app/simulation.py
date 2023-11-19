@@ -33,29 +33,10 @@ class Simulation:
         self._is_stopped = False
         i, time_sum, time_avg_size = 0, 0, 10
         while not self._is_stopped:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.stop()
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_LEFT:
-                        self._screen.move_offset(100, 0)
-                    elif event.key == pygame.K_RIGHT:
-                        self._screen.move_offset(-100, 0)
-                    elif event.key == pygame.K_UP:
-                        self._screen.move_offset(0, 100)
-                    elif event.key == pygame.K_DOWN:
-                        self._screen.move_offset(0, -100)
-                    elif event.key == pygame.K_EQUALS:
-                        self._screen.move_scale(1.1)
-                    elif event.key == pygame.K_MINUS:
-                        self._screen.move_scale(0.9)
-
             ts = time.time_ns()
-            self._step_move()
-            self._step_interact_atoms()
-            self._step_interact_links()
-            self._step_display()
-            self._clock.tick(30)
+
+            self._handle_events()
+            self._step()
 
             time_sum += time.time_ns() - ts
             i += 1
@@ -66,6 +47,13 @@ class Simulation:
 
     def stop(self):
         self._is_stopped = True
+
+    def _step(self):
+        self._step_move()
+        self._step_interact_atoms()
+        self._step_interact_links()
+        self._step_display()
+        self._clock.tick(30)
 
     def _step_interact_atoms(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
@@ -125,3 +113,21 @@ class Simulation:
             colors[:, 1],
             colors[:, 2],
         )
+
+    def _handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.stop()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_LEFT:
+                    self._screen.move_offset(100, 0)
+                elif event.key == pygame.K_RIGHT:
+                    self._screen.move_offset(-100, 0)
+                elif event.key == pygame.K_UP:
+                    self._screen.move_offset(0, 100)
+                elif event.key == pygame.K_DOWN:
+                    self._screen.move_offset(0, -100)
+                elif event.key == pygame.K_EQUALS:
+                    self._screen.move_scale(1.1)
+                elif event.key == pygame.K_MINUS:
+                    self._screen.move_scale(0.9)
