@@ -60,6 +60,7 @@ class Simulation:
     def _step_interact_atoms(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
         new_links = interact_atoms(self._atoms, self._links, clusters_coords)
+        # interact_atoms.parallel_diagnostics(level=4)
         self._links = np.append(self._links, new_links, axis=0)
 
     def _step_interact_links(self) -> None:

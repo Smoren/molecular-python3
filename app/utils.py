@@ -354,18 +354,9 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     cache=not MODE_DEBUG,
 )
 def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> np.ndarray:
-    # tasks = clusterize_tasks(atoms, links, clusters_coords)
-
-    t = get_cluster_task_data(atoms, links, clusters_coords[0])
-    tasks = [t] * clusters_coords.shape[0]
-
-    for i in nb.prange(1, clusters_coords.shape[0]):
-        t = get_cluster_task_data(atoms, links, clusters_coords[i])
-        tasks[i] = t
-
-    new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * len(tasks)
-    for i in nb.prange(len(tasks)):
-        task_data = tasks[i]
+    new_links = [np.empty(shape=(0, 3), dtype=np.int64)] * clusters_coords.shape[0]
+    for i in nb.prange(clusters_coords.shape[0]):
+        task_data = get_cluster_task_data(atoms, links, clusters_coords[i])
         cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
         atoms[cluster_mask] = cluster_atoms
         new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 3), dtype=np.int64)
