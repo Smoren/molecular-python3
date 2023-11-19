@@ -116,25 +116,6 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
 
 @nb.njit(
     (
-        nb.types.List(nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])))
-        (nb.float64[:, :], nb.int64[:, :], nb.float64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    # parallel=True,
-    cache=not MODE_DEBUG,
-)
-def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> list:
-    # tasks = nb.typed.List.empty_list(
-    #     nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])),
-    #     allocated=clusters_coords.shape[0],
-    # )
-    return [get_cluster_task_data(atoms, links, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
-
-
-@nb.njit(
-    (
         nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])
     ),
