@@ -1,16 +1,20 @@
-from typing import Tuple
+from typing import Tuple, Callable
 
 import numpy as np
 import pygame
 
 
 class Drawer:
+    draw_circles_vectorized: Callable
+    draw_lines_vectorized: Callable
     _screen: pygame.Surface
     _background_color: Tuple[int, int, int]
 
     def __init__(self, screen: pygame.Surface, background_color: Tuple[int, int, int] = (0, 0, 0)):
         self._screen = screen
         self._background_color = background_color
+        self.draw_circles_vectorized = np.vectorize(self.draw_circle)
+        self.draw_lines_vectorized = np.vectorize(self.draw_line)
 
     def clear(self) -> None:
         self._screen.fill(self._background_color)
