@@ -72,7 +72,6 @@ class Simulation:
         fastmath=True,
         looplift=True,
         boundscheck=False,
-        # parallel=True,
         cache=not MODE_DEBUG,
     )
     def _step_display(self) -> None:
@@ -83,6 +82,13 @@ class Simulation:
 
         self._drawer.update()
 
+    @nb.jit(
+        forceobj=True,
+        fastmath=True,
+        looplift=True,
+        boundscheck=False,
+        cache=not MODE_DEBUG,
+    )
     def _display_atoms(self):
         colors = ATOMS_COLORS[self._atoms[:, A_COL_TYPE].astype(np.int64)]
         self._drawer.draw_circles_vectorized(
@@ -94,7 +100,13 @@ class Simulation:
             colors[:, 2],
         )
 
-    # @nb.jit(parallel=True)
+    @nb.jit(
+        forceobj=True,
+        fastmath=True,
+        looplift=True,
+        boundscheck=False,
+        cache=not MODE_DEBUG,
+    )
     def _display_links(self):
         if self._links.shape[0] == 0:
             return
