@@ -122,9 +122,21 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    # parallel=True,
     cache=not MODE_DEBUG,
 )
 def clusterize_tasks(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.ndarray) -> list:
+    # tasks = nb.typed.List.empty_list(
+    #     nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:])),
+    #     allocated=clusters_coords.shape[0],
+    # )
+    # t = get_cluster_task_data(atoms, links, clusters_coords[0])
+    # tasks = [t for _ in range(clusters_coords.shape[0])]
+    #
+    # for i in nb.prange(1, clusters_coords.shape[0]):
+    #     t = get_cluster_task_data(atoms, links, clusters_coords[i])
+    #     tasks[i] = t
+    # return tasks
     return [get_cluster_task_data(atoms, links, clusters_coords[i]) for i in nb.prange(clusters_coords.shape[0])]
 
 
@@ -353,7 +365,7 @@ def interact_atoms(atoms: np.ndarray, links: np.ndarray, clusters_coords: np.nda
         cluster_atoms, cluster_new_links, cluster_mask = interact_cluster(*task_data)
         atoms[cluster_mask] = cluster_atoms
         new_links[i] = np.empty(shape=(cluster_new_links.shape[0], 3), dtype=np.int64)
-        for j in nb.prange(cluster_new_links.shape[0]):
+        for j in range(cluster_new_links.shape[0]):
             new_links[i][j] = cluster_new_links[j]
 
     total_new_links = np_unique_links(concat(new_links, links.shape[1], np.int64))
