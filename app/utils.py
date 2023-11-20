@@ -12,6 +12,7 @@ from app.config import MODE_DEBUG
     fastmath=True,
     boundscheck=False,
     looplift=True,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def isin(a, b):
@@ -26,6 +27,7 @@ def isin(a, b):
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
@@ -46,6 +48,7 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def np_unique_links(arr: np.ndarray) -> np.ndarray:
@@ -64,6 +67,7 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
@@ -90,6 +94,7 @@ def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
@@ -125,6 +130,7 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def interact_cluster(
@@ -285,6 +291,7 @@ def interact_cluster(
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def handle_new_links(
@@ -331,6 +338,7 @@ def handle_new_links(
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
@@ -360,6 +368,7 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     looplift=True,
     boundscheck=False,
     parallel=True,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def interact_atoms(
@@ -407,6 +416,7 @@ def interact_atoms(
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: float) -> np.ndarray:
@@ -435,6 +445,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: floa
     fastmath=True,
     looplift=True,
     boundscheck=False,
+    nogil=True,
     cache=not MODE_DEBUG,
 )
 def apply_speed(
