@@ -1,5 +1,4 @@
 numpy
 pygame
-tk
 numba
-scipy
+icc_rt
