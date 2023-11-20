@@ -2,3 +2,4 @@ numpy
 pygame
 numba
 icc_rt
+jupyter
