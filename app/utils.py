@@ -5,7 +5,7 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
     A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
-from app.config import MODE_DEBUG
+from app.config import USE_JIT_CACHE
 
 
 @nb.njit(
@@ -13,7 +13,7 @@ from app.config import MODE_DEBUG
     boundscheck=False,
     looplift=True,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def isin(a, b):
     out = np.empty(a.shape[0], dtype=np.bool_)
@@ -28,7 +28,7 @@ def isin(a, b):
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
     assert arr.ndim == 2
@@ -49,7 +49,7 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def np_unique_links(arr: np.ndarray) -> np.ndarray:
     assert arr.ndim == 2
@@ -68,7 +68,7 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
     total_len = 0
@@ -95,7 +95,7 @@ def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
@@ -131,7 +131,7 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def interact_cluster(
     cluster_atoms: np.ndarray,
@@ -292,7 +292,7 @@ def interact_cluster(
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def handle_new_links(
     atoms: np.ndarray,
@@ -339,7 +339,7 @@ def handle_new_links(
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     for i in nb.prange(links.shape[0]):
@@ -369,7 +369,7 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     boundscheck=False,
     parallel=True,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def interact_atoms(
     atoms: np.ndarray,
@@ -417,7 +417,7 @@ def interact_atoms(
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: float) -> np.ndarray:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
@@ -446,7 +446,7 @@ def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: floa
     looplift=True,
     boundscheck=False,
     nogil=True,
-    cache=not MODE_DEBUG,
+    cache=USE_JIT_CACHE,
 )
 def apply_speed(
     atoms: np.ndarray,
