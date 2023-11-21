@@ -154,10 +154,10 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     cluster_atoms, neighbours_atoms = atoms[cluster_mask], atoms[neighbours_mask]
 
     # TODO узкое место
-    # mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID])
-    #               | isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID]))
-    # links_filtered = links[mask_links]
-    links_filtered = links
+    mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID].astype(np.int64)) |
+                  isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID].astype(np.int64)))
+    links_filtered = links[mask_links]
+    # links_filtered = links
 
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
