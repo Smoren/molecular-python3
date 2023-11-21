@@ -15,7 +15,51 @@ from app.config import USE_JIT_CACHE
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def isin(a, b):
+def isin(where: np.ndarray, what: np.ndarray) -> np.ndarray:
+    where_size = where.shape[0]
+    what_size = what.shape[0]
+    result = np.empty(shape=(where_size,), dtype=np.bool_)
+    for i in nb.prange(where_size):
+        result[i] = False
+
+    if what_size == 0:
+        return result
+
+    what_min, what_max = what[0], what[0]
+    for i in nb.prange(1, what_size):
+        if what[i] > what_max:
+            what_max = what[i]
+        elif what[i] < what_min:
+            what_min = what[i]
+
+    what_range = what_max - what_min
+
+    what_normalized = np.empty(shape=(what_size+1,), dtype=np.int64)
+    for i in nb.prange(what_size):
+        what_normalized[i] = what[i] - what_min
+
+    isin_helper_ar = np.empty(shape=(what_range+1,), dtype=np.int64)
+    for i in nb.prange(what_range+1):
+        isin_helper_ar[i] = False
+    for i in nb.prange(what_size):
+        isin_helper_ar[what_normalized[i]] = True
+
+    for i in nb.prange(where_size):
+        if where[i] > what_max or where[i] < what_min:
+            continue
+        result[i] = isin_helper_ar[where[i] - what_min]
+
+    return result
+
+
+@nb.njit(
+    fastmath=True,
+    boundscheck=False,
+    looplift=True,
+    nogil=True,
+    cache=USE_JIT_CACHE,
+)
+def isin_old(a, b):
     out = np.empty(a.shape[0], dtype=np.bool_)
     b = set(b)
     for i in nb.prange(a.shape[0]):
@@ -192,8 +236,8 @@ def interact_cluster(
         ###############################
 
         # [Разделим не столкнувшихся соседей на связанные и не связанные с атомом]
-        _mask_linked = (isin(neighbours_not_bounced[:, A_COL_ID], atom_links[:, L_COL_LHS]) |
-                        isin(neighbours_not_bounced[:, A_COL_ID], atom_links[:, L_COL_RHS]))
+        _mask_linked = (isin(neighbours_not_bounced[:, A_COL_ID].astype(np.int64), atom_links[:, L_COL_LHS]) |
+                        isin(neighbours_not_bounced[:, A_COL_ID].astype(np.int64), atom_links[:, L_COL_RHS]))
 
         ###############################
         neighbours_linked = neighbours_not_bounced[_mask_linked]
