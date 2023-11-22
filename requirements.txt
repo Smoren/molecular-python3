@@ -3,3 +3,5 @@ pygame
 numba
 icc_rt
 jupyter
+matplotlib
+seaborn
