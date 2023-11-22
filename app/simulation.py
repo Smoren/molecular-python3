@@ -9,7 +9,7 @@ from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_GRAVITY, AT
     FORCE_LINKED_ELASTIC, MAX_LINK_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
 from app.screen import Screen
-from app.utils import interact_atoms, apply_speed, interact_links
+from app.logic import interact_atoms, apply_speed, interact_links
 
 
 class Simulation:
