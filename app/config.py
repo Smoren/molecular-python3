@@ -2,7 +2,7 @@ import numpy as np
 
 USE_JIT_CACHE = True
 
-ATOMS_COUNT = 10000
+ATOMS_COUNT = 2000
 WINDOW_SIZE = (1920, 1080)
 MAX_COORD = (2500, 2500)
 SIMULATION_SPEED = 1
@@ -13,30 +13,30 @@ MAX_LINK_DISTANCE = 70
 
 FORCE_BOUNCE_ELASTIC = 0.3
 FORCE_NOT_LINKED_GRAVITY = 10
-FORCE_LINKED_GRAVITY = 10
+FORCE_LINKED_GRAVITY = 1
 FORCE_LINKED_ELASTIC = 0.16
 
 INERTIAL_FACTOR = 0.9
 
 ATOMS_GRAVITY = np.array([
-    # [-1, -1, -1],
-    # [-1, -1, -1],
-    # [-1, -1, -1],
+    [1, 1, 1],
+    [1, 1, 1],
+    [1, 1, 1],
 
     # [1, -1, -0.2],
     # [-1, 0, 0.5],
     # [0.1, -0.1, 0.1],
 
-    [0.2, -1, -0.2],
-    [-1, 0, 0.5],
-    [0.1, -0.3, 0.1],
+    # [0.2, -1, -0.2],
+    # [-1, 0, 0.5],
+    # [0.1, -0.3, 0.1],
 ], dtype=np.float64)
 ATOMS_LINK_GRAVITY = np.array([
     [-1, -1, 1],
     [-1, -1, -1],
     [-1, -1, -1],
 ], dtype=np.float64)
-ATOMS_LINKS = np.array([1, 3, 2], dtype=np.int64)
+ATOMS_LINKS = np.array([0, 0, 0], dtype=np.int64)
 ATOMS_LINK_TYPES = np.array([
     [0, 1, 1],
     [1, 2, 1],
@@ -47,4 +47,4 @@ ATOMS_COLORS = np.array([
     [200, 140, 100],
     [80, 170, 140],
 ], dtype=np.int64)
-ATOMS_RADIUS = np.array([4, 5, 3], dtype=np.int64)
+ATOMS_RADIUS = np.array([5, 5, 5], dtype=np.int64)

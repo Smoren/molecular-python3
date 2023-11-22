@@ -8,6 +8,32 @@ from app.utils import isin, np_apply_reducer, concat, np_unique_links
 
 
 @nb.njit(
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    nogil=True,
+    cache=USE_JIT_CACHE,
+)
+def lennard_jones_potential(r, sigma: float, eps: float) -> np.ndarray:
+    buf = (sigma / r)**6
+    return 4 * eps * (buf * buf - buf)
+
+
+@nb.njit(
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    nogil=True,
+    cache=USE_JIT_CACHE,
+)
+def lennard_jones_potential_truncated(r: np.ndarray, sigma: float, eps: float) -> np.ndarray:
+    rc = 2.5*sigma
+    result = lennard_jones_potential(r, sigma, eps) - lennard_jones_potential(np.array([rc]), sigma, eps)
+    result[r > rc] = 0
+    return result
+
+
+@nb.njit(
     (
         nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
         (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
@@ -98,7 +124,7 @@ def interact_cluster(
         ###############################
 
         # [Разделим соседей на столкнувшихся и не столкнувшихся с атомом]
-        _mask_bounced = neighbours_l < neighbours[:, A_COL_R] + atom[A_COL_R]
+        _mask_bounced = neighbours_l < 0  # TODO always false
 
         ###############################
         neighbours_bounced = neighbours[_mask_bounced]
@@ -144,7 +170,9 @@ def interact_cluster(
         _m1 = np.pi * atom[A_COL_R] ** 2
         _m2 = np.pi * (neighbours_not_linked[:, A_COL_R].T ** 2).T
 
-        _f = (_d_norm.T / neighbours_not_linked_l * _m2).T / _m1  # l2 вместо l ???
+        _ljp = -lennard_jones_potential(neighbours_not_linked_l/5, 3, 0.01)  # -2R
+        _ljp[_ljp < -2] = -2
+        _f = (_d_norm.T * _ljp).T
 
         ###############################
         dv_gravity_not_linked = np.sum((_f.T * _mult).T, axis=0) * force_not_linked_gravity
