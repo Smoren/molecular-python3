@@ -171,7 +171,7 @@ def interact_cluster(
         _m2 = np.pi * (neighbours_not_linked[:, A_COL_R].T ** 2).T
 
         _ljp = -lennard_jones_potential(neighbours_not_linked_l/5, 3, 0.01)  # -2R
-        _ljp[_ljp < -2] = -2
+        _ljp[_ljp < -1.5] = -1.5
         _f = (_d_norm.T * _ljp).T
 
         ###############################
