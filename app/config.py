@@ -2,19 +2,19 @@ import numpy as np
 
 USE_JIT_CACHE = True
 
-ATOMS_COUNT = 2000
+ATOMS_COUNT = 3000
 WINDOW_SIZE = (1920, 1080)
 MAX_COORD = (2500, 2500)
 SIMULATION_SPEED = 1
 
 MAX_INTERACTION_DISTANCE = 100
-FORCE_NOT_LINKED_GRAVITY = 10
-INERTIAL_FACTOR = 0.9
+FORCE_GRAVITY = 1
+INERTIAL_FACTOR = 0.99
 
 ATOMS_LJ_PARAMS = np.array([
     [3, 0.01],
-    [3, 0.01],
-    [3, 0.01],
+    [2, 0.02],
+    [1, 0.03],
 ], dtype=np.float64)
 ATOMS_GRAVITY = np.array([
     [1, 1, 1],
