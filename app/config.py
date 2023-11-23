@@ -16,11 +16,6 @@ ATOMS_LJ_PARAMS = np.array([
     [2, 0.02],
     [1, 0.03],
 ], dtype=np.float64)
-ATOMS_GRAVITY = np.array([
-    [1, 1, 1],
-    [1, 1, 1],
-    [1, 1, 1],
-], dtype=np.float64)
 ATOMS_COLORS = np.array([
     [250, 20, 20],
     [200, 140, 100],
