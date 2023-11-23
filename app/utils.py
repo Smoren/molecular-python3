@@ -52,21 +52,6 @@ def isin(where: np.ndarray, what: np.ndarray) -> np.ndarray:
 
 @nb.njit(
     fastmath=True,
-    boundscheck=False,
-    looplift=True,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def isin_old(a, b):
-    out = np.empty(a.shape[0], dtype=np.bool_)
-    b = set(b)
-    for i in nb.prange(a.shape[0]):
-        out[i] = a[i] in b
-    return out
-
-
-@nb.njit(
-    fastmath=True,
     looplift=True,
     boundscheck=False,
     nogil=True,
@@ -84,25 +69,6 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
         for i in nb.prange(len(result)):
             result[i] = func1d(arr[i, :])
     return result
-
-
-@nb.njit(
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def np_unique_links(arr: np.ndarray) -> np.ndarray:
-    assert arr.ndim == 2
-
-    if arr.shape[0] == 0:
-        return arr
-
-    result = set()
-    for i in nb.prange(arr.shape[0]):
-        result.add((arr[i, 0], arr[i, 1], arr[i, 2]))
-    return np.array(list(result))
 
 
 @nb.njit(

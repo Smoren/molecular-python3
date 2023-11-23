@@ -2,9 +2,8 @@ import numpy as np
 import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
-    A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
+    A_COL_TYPE
 from app.config import USE_JIT_CACHE
-from app.utils import isin, np_apply_reducer, concat, np_unique_links
 
 
 @nb.njit(
@@ -118,78 +117,6 @@ def interact_cluster(
         atom[A_COL_VY] += dv_gravity[1]
 
     return cluster_atoms, cluster_mask
-
-
-@nb.njit(
-    (
-        nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:, :], nb.int64[:], nb.int64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def handle_new_links(
-    atoms: np.ndarray,
-    links: np.ndarray,
-    atoms_links: np.ndarray,
-    atoms_link_types: np.ndarray,
-):
-    for i in nb.prange(links.shape[0]):
-        link_candidate = links[i]
-
-        lhs_type = int(atoms[link_candidate[L_COL_LHS], A_COL_TYPE])
-        rhs_type = int(atoms[link_candidate[L_COL_RHS], A_COL_TYPE])
-
-        lhs_total_links = atoms[link_candidate[L_COL_LHS], A_COL_LINKS]
-        rhs_total_links = atoms[link_candidate[L_COL_RHS], A_COL_LINKS]
-        lhs_type_links = atoms[link_candidate[L_COL_LHS], A_COL_LINKS+1+rhs_type]
-        rhs_type_links = atoms[link_candidate[L_COL_RHS], A_COL_LINKS+1+lhs_type]
-
-        lhs_total_links_max = atoms_links[lhs_type]
-        rhs_total_links_max = atoms_links[rhs_type]
-        lhs_type_links_max = atoms_link_types[lhs_type][rhs_type]
-        rhs_type_links_max = atoms_link_types[rhs_type][lhs_type]
-
-        can_link = lhs_total_links < lhs_total_links_max and \
-            rhs_total_links < rhs_total_links_max and \
-            lhs_type_links < lhs_type_links_max and \
-            rhs_type_links < rhs_type_links_max
-        link_candidate[L_COL_DEL] = not can_link
-        link_plus = int(can_link)
-
-        atoms[link_candidate[L_COL_LHS], A_COL_LINKS] += link_plus
-        atoms[link_candidate[L_COL_RHS], A_COL_LINKS] += link_plus
-
-        atoms[link_candidate[L_COL_LHS], int(A_COL_LINKS+1+rhs_type)] += link_plus
-        atoms[link_candidate[L_COL_RHS], int(A_COL_LINKS+1+lhs_type)] += link_plus
-
-
-@nb.njit(
-    (
-        nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
-    for i in nb.prange(links.shape[0]):
-        link = links[i]
-
-        lhs_type = int(atoms[link[L_COL_LHS], A_COL_TYPE])
-        rhs_type = int(atoms[link[L_COL_RHS], A_COL_TYPE])
-
-        atoms[link[L_COL_LHS], A_COL_LINKS] -= 1
-        atoms[link[L_COL_RHS], A_COL_LINKS] -= 1
-
-        atoms[link[L_COL_LHS], A_COL_LINKS+1+rhs_type] -= 1
-        atoms[link[L_COL_RHS], A_COL_LINKS+1+lhs_type] -= 1
 
 
 @nb.njit(
