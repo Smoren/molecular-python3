@@ -11,6 +11,11 @@ MAX_INTERACTION_DISTANCE = 100
 FORCE_NOT_LINKED_GRAVITY = 10
 INERTIAL_FACTOR = 0.9
 
+ATOMS_LJ_PARAMS = np.array([
+    [3, 0.01],
+    [3, 0.01],
+    [3, 0.01],
+], dtype=np.float64)
 ATOMS_GRAVITY = np.array([
     [1, 1, 1],
     [1, 1, 1],

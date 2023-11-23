@@ -35,8 +35,8 @@ def lennard_jones_potential_truncated(r: np.ndarray, sigma: float, eps: float) -
 
 @nb.njit(
     (
-        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-        (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
+        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.boolean[:]))
+        (nb.float64[:, :], nb.float64[:])
     ),
     fastmath=True,
     looplift=True,
@@ -44,7 +44,7 @@ def lennard_jones_potential_truncated(r: np.ndarray, sigma: float, eps: float) -
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
+def get_cluster_task_data(atoms: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
     cluster_mask = (atoms[:, A_COL_CX] == cluster_x) & \
@@ -56,13 +56,7 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
 
     cluster_atoms, neighbours_atoms = atoms[cluster_mask], atoms[neighbours_mask]
 
-    # TODO узкое место
-    mask_links = (isin(links[:, L_COL_LHS], cluster_atoms[:, A_COL_ID].astype(np.int64)) |
-                  isin(links[:, L_COL_RHS], cluster_atoms[:, A_COL_ID].astype(np.int64)))
-    links_filtered = links[mask_links]
-    # links_filtered = links
-
-    return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
+    return cluster_atoms, neighbours_atoms, cluster_mask
 
 
 @nb.njit(
@@ -84,8 +78,8 @@ def interact_cluster(
     neighbour_atoms: np.ndarray,
     cluster_mask: np.ndarray,
     cluster_size: int,
-    atoms_gravity: np.ndarray,
-    force_not_linked_gravity: float,
+    atoms_lj_params: np.ndarray,
+    force_gravity: float,
 ):
     coords_columns = np.array([A_COL_X, A_COL_Y])
 
@@ -102,23 +96,21 @@ def interact_cluster(
         _mask_in_radius = _l <= cluster_size
 
         ###############################
-        neighbours = neighbours[_mask_in_radius]
         neighbours_d = _d[_mask_in_radius]
         neighbours_l = _l[_mask_in_radius]
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
-        _mult = atoms_gravity[int(atom[A_COL_TYPE]), neighbours[:, A_COL_TYPE].astype(np.int64)]
         _d_norm = (neighbours_d.T / neighbours_l).T
-        _m1 = np.pi * atom[A_COL_R] ** 2
-        _m2 = np.pi * (neighbours[:, A_COL_R].T ** 2).T
 
-        _ljp = -lennard_jones_potential(neighbours_l/5, 3, 0.01)  # -2R
+        sigma, eps = atoms_lj_params[int(atom[A_COL_TYPE])]
+
+        _ljp = -lennard_jones_potential(neighbours_l/5, sigma, eps)  # -2R
         _ljp[_ljp < -1.5] = -1.5
         _f = (_d_norm.T * _ljp).T
 
         ###############################
-        dv_gravity = np.sum((_f.T * _mult).T, axis=0) * force_not_linked_gravity
+        dv_gravity = np.sum(_f, axis=0) * force_gravity
         ###############################
 
         # [Применим ускорение]
@@ -204,7 +196,7 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     (
         nb.types.NoneType('none')
         (
-            nb.float64[:, :], nb.int64[:, :], nb.float64[:, :],
+            nb.float64[:, :], nb.float64[:, :],
             nb.int64, nb.float64[:, :], nb.float64,
         )
     ),
@@ -217,49 +209,19 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
 )
 def interact_atoms(
     atoms: np.ndarray,
-    links: np.ndarray,
     clusters_coords: np.ndarray,
     cluster_size: int,
-    atoms_gravity: np.ndarray,
+    atoms_lj_params: np.ndarray,
     force_not_linked_gravity: float,
 ) -> None:
     for i in nb.prange(clusters_coords.shape[0]):
-        task_data = get_cluster_task_data(atoms, links, clusters_coords[i])
-        cluster_atoms, neighbours_atoms, links_filtered, cluster_mask = task_data
+        task_data = get_cluster_task_data(atoms, clusters_coords[i])
+        cluster_atoms, neighbours_atoms, cluster_mask = task_data
         cluster_atoms, cluster_mask = interact_cluster(
             cluster_atoms, neighbours_atoms, cluster_mask,
-            cluster_size, atoms_gravity, force_not_linked_gravity,
+            cluster_size, atoms_lj_params, force_not_linked_gravity,
         )
         atoms[cluster_mask] = cluster_atoms
-
-
-@nb.njit(
-    (
-        nb.int64[:, :]
-        (nb.float64[:, :], nb.int64[:, :], nb.float64)
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: float) -> np.ndarray:
-    lhs_atoms = atoms[links[:, L_COL_LHS]]
-    rhs_atoms = atoms[links[:, L_COL_RHS]]
-
-    coords_columns = np.array([A_COL_X, A_COL_Y])
-    d = rhs_atoms[:, coords_columns] - lhs_atoms[:, coords_columns]
-    l2 = d[:, 0]**2 + d[:, 1]**2
-    l = np.sqrt(l2)
-
-    filter_mask = l < max_link_distance
-    links_to_save = links[filter_mask]
-    links_to_delete = links[~filter_mask]
-
-    handle_deleting_links(atoms, links_to_delete)
-
-    return links_to_save
 
 
 @nb.njit(
