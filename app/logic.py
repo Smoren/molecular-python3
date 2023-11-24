@@ -25,6 +25,22 @@ def lennard_jones_potential(r, sigma: float, eps: float) -> np.ndarray:
     nogil=True,
     cache=USE_JIT_CACHE,
 )
+def lennard_jones_force(r2, sigma: float, eps: float) -> np.ndarray:
+    inv_r2 = 1.0 / r2
+    sigma_over_r2 = sigma * sigma * inv_r2
+    sigma_over_r6 = sigma_over_r2 * sigma_over_r2 * sigma_over_r2
+    sigma_over_r12 = sigma_over_r6 * sigma_over_r6
+    force = 24 * eps * inv_r2 * (2 * sigma_over_r12 - sigma_over_r6)
+    return force
+
+
+@nb.njit(
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    nogil=True,
+    cache=USE_JIT_CACHE,
+)
 def lennard_jones_potential_truncated(r: np.ndarray, sigma: float, eps: float) -> np.ndarray:
     rc = 2.5*sigma
     result = lennard_jones_potential(r, sigma, eps) - lennard_jones_potential(np.array([rc]), sigma, eps)
@@ -97,6 +113,7 @@ def interact_cluster(
         ###############################
         neighbours_d = _d[_mask_in_radius]
         neighbours_l = _l[_mask_in_radius]
+        neighbours_l2 = _l2[_mask_in_radius]
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -107,6 +124,9 @@ def interact_cluster(
         _ljp = -lennard_jones_potential(neighbours_l/5, sigma, eps)  # -2R
         _ljp[_ljp < -1.5] = -1.5
         _f = (_d_norm.T * _ljp).T
+        # _ljf = -lennard_jones_force(neighbours_l2, sigma, eps)  # -2R
+        # _ljf[_ljf < -1.5] = -1.5
+        # _f = (_d_norm.T * _ljf).T
 
         ###############################
         dv_gravity = np.sum(_f, axis=0) * force_gravity
