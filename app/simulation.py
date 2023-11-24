@@ -99,19 +99,19 @@ class Simulation:
                     self._screen.move_scale(0.9)
                 elif event.key == pygame.K_w:
                     ATOMS_MORSE_PARAMS[0][0] += 0.1
-                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0]}')
+                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0][0]}')
                 elif event.key == pygame.K_q:
                     ATOMS_MORSE_PARAMS[0][0] -= 0.1
-                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0]}')
+                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0][0]}')
                 elif event.key == pygame.K_s:
                     ATOMS_MORSE_PARAMS[0][1] += 0.1
-                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][1]}')
+                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][0][1]}')
                 elif event.key == pygame.K_a:
                     ATOMS_MORSE_PARAMS[0][1] -= 0.1
-                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][1]}')
+                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][0][1]}')
                 elif event.key == pygame.K_x:
                     ATOMS_MORSE_PARAMS[0][2] += 0.1
-                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][2]}')
+                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][0][2]}')
                 elif event.key == pygame.K_z:
                     ATOMS_MORSE_PARAMS[0][2] -= 0.1
-                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][2]}')
+                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][0][2]}')
