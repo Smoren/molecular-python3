@@ -97,3 +97,15 @@ class Simulation:
                     self._screen.move_scale(1.1)
                 elif event.key == pygame.K_MINUS:
                     self._screen.move_scale(0.9)
+                elif event.key == pygame.K_w:
+                    ATOMS_LJ_PARAMS[0][0] += 0.1
+                    print(f'sigma: {ATOMS_LJ_PARAMS[0][0]}')
+                elif event.key == pygame.K_q:
+                    ATOMS_LJ_PARAMS[0][0] -= 0.1
+                    print(f'sigma: {ATOMS_LJ_PARAMS[0][0]}')
+                elif event.key == pygame.K_s:
+                    ATOMS_LJ_PARAMS[0][1] += 0.1
+                    print(f'eps: {ATOMS_LJ_PARAMS[0][1]}')
+                elif event.key == pygame.K_a:
+                    ATOMS_LJ_PARAMS[0][1] -= 0.1
+                    print(f'eps: {ATOMS_LJ_PARAMS[0][1]}')
