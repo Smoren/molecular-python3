@@ -2,7 +2,7 @@ import numpy as np
 import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
-    A_COL_TYPE
+    A_COL_TYPE, A_COL_R
 from app.config import USE_JIT_CACHE
 
 
@@ -13,7 +13,7 @@ from app.config import USE_JIT_CACHE
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def morse_potential(r: np.ndarray, eps: float, alpha: float, sigma: float):
+def morse_potential(r: np.ndarray, eps: float, alpha: float, sigma: float) -> np.ndarray:
     return eps * (np.exp(-2*alpha * (r - sigma)) - 2*np.exp(-alpha * (r - sigma)))
 
 
@@ -123,27 +123,23 @@ def interact_cluster(
         _mask_in_radius = _l <= cluster_size
 
         ###############################
+        neighbours = neighbours[_mask_in_radius]
         neighbours_d = _d[_mask_in_radius]
         neighbours_l = _l[_mask_in_radius]
-        neighbours_l2 = _l2[_mask_in_radius]
+        # neighbours_l2 = _l2[_mask_in_radius]
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
         _d_norm = (neighbours_d.T / neighbours_l).T
 
+        _m1 = np.pi * atom[A_COL_R]**2
+        _m2 = np.pi * neighbours[:, A_COL_R]**2
+
         eps, alpha, sigma = atoms_morse_params[int(atom[A_COL_TYPE])]
         eps, alpha, sigma = eps*morse_mult, alpha*morse_mult, sigma*morse_mult
         _mp = -morse_potential(neighbours_l, eps, alpha, sigma)
-        # _mp[_mp < -1.5] = -1.5
-        _f = (_d_norm.T * _mp).T
-
-        # _center = np.array([500, 500])
-        # _center_d = _center - atom[coords_columns]
-        # _center_l2 = _center_d[0] ** 2 + _center_d[1] ** 2
-        # _center_l = np.sqrt(_center_l2)
-        # _center_d_norm = _center_d / _center_l
-        # # force_center = _center_d_norm / _center_l2 * 100
-        # force_center = _center_d_norm * 5
+        _mp_weighted = (_mp.T * _m2).T / _m1
+        _f = (_d_norm.T * _mp_weighted).T
 
         ###############################
         dv_gravity = np.sum(_f, axis=0) * force_gravity
