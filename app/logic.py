@@ -13,7 +13,7 @@ from app.config import USE_JIT_CACHE
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def morse_potential(r: np.ndarray, eps: float, alpha: float, sigma: float) -> np.ndarray:
+def morse_potential(r: np.ndarray, eps, alpha, sigma) -> np.ndarray:
     return eps * (np.exp(-2*alpha * (r - sigma)) - 2*np.exp(-alpha * (r - sigma)))
 
 
@@ -90,7 +90,7 @@ def get_cluster_task_data(atoms: np.ndarray, cluster_coords: np.ndarray) -> tupl
         nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
         (
             nb.float64[:, :], nb.float64[:, :], nb.boolean[:],
-            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
+            nb.int64, nb.float64[:, :, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
@@ -135,8 +135,10 @@ def interact_cluster(
         _m1 = np.pi * atom[A_COL_R]**2
         _m2 = np.pi * neighbours[:, A_COL_R]**2
 
-        eps, alpha, sigma = atoms_morse_params[int(atom[A_COL_TYPE])]
-        eps, alpha, sigma = eps*morse_mult, alpha*morse_mult, sigma*morse_mult
+        _neighbours_morse_params = atoms_morse_params[int(atom[A_COL_TYPE]), neighbours[:, A_COL_TYPE].astype(np.int64)]
+        eps = _neighbours_morse_params[:, 0]*morse_mult
+        alpha = _neighbours_morse_params[:, 1]*morse_mult
+        sigma = _neighbours_morse_params[:, 2]*morse_mult
         _mp = -morse_potential(neighbours_l, eps, alpha, sigma)
         _mp_weighted = (_mp.T * _m2).T / _m1
         _f = (_d_norm.T * _mp_weighted).T
@@ -157,7 +159,7 @@ def interact_cluster(
         nb.types.NoneType('none')
         (
             nb.float64[:, :], nb.float64[:, :],
-            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
+            nb.int64, nb.float64[:, :, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
