@@ -13,6 +13,17 @@ from app.config import USE_JIT_CACHE
     nogil=True,
     cache=USE_JIT_CACHE,
 )
+def morse_potential(r: np.ndarray, eps: float, alpha: float, sigma: float):
+    return eps * (np.exp(-2*alpha * (r - sigma)) - 2*np.exp(-alpha * (r - sigma)))
+
+
+@nb.njit(
+    fastmath=True,
+    looplift=True,
+    boundscheck=False,
+    nogil=True,
+    cache=USE_JIT_CACHE,
+)
 def lennard_jones_potential(r, sigma: float, eps: float) -> np.ndarray:
     buf = (sigma / r)**6
     return 4 * eps * (buf * buf - buf)
@@ -79,7 +90,7 @@ def get_cluster_task_data(atoms: np.ndarray, cluster_coords: np.ndarray) -> tupl
         nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
         (
             nb.float64[:, :], nb.float64[:, :], nb.boolean[:],
-            nb.int64, nb.float64[:, :], nb.float64,
+            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
@@ -93,7 +104,8 @@ def interact_cluster(
     neighbour_atoms: np.ndarray,
     cluster_mask: np.ndarray,
     cluster_size: int,
-    atoms_lj_params: np.ndarray,
+    atoms_morse_params: np.ndarray,
+    morse_mult: float,
     force_gravity: float,
 ):
     coords_columns = np.array([A_COL_X, A_COL_Y])
@@ -119,14 +131,19 @@ def interact_cluster(
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
         _d_norm = (neighbours_d.T / neighbours_l).T
 
-        sigma, eps = atoms_lj_params[int(atom[A_COL_TYPE])]
+        eps, alpha, sigma = atoms_morse_params[int(atom[A_COL_TYPE])]
+        eps, alpha, sigma = eps*morse_mult, alpha*morse_mult, sigma*morse_mult
+        _mp = -morse_potential(neighbours_l, eps, alpha, sigma)
+        # _mp[_mp < -1.5] = -1.5
+        _f = (_d_norm.T * _mp).T
 
-        _ljp = -lennard_jones_potential(neighbours_l/5, sigma, eps)  # -2R
-        _ljp[_ljp < -1.5] = -1.5
-        _f = (_d_norm.T * _ljp).T
-        # _ljf = -lennard_jones_force(neighbours_l2, sigma, eps)  # -2R
-        # _ljf[_ljf < -1.5] = -1.5
-        # _f = (_d_norm.T * _ljf).T
+        # _center = np.array([500, 500])
+        # _center_d = _center - atom[coords_columns]
+        # _center_l2 = _center_d[0] ** 2 + _center_d[1] ** 2
+        # _center_l = np.sqrt(_center_l2)
+        # _center_d_norm = _center_d / _center_l
+        # # force_center = _center_d_norm / _center_l2 * 100
+        # force_center = _center_d_norm * 5
 
         ###############################
         dv_gravity = np.sum(_f, axis=0) * force_gravity
@@ -144,7 +161,7 @@ def interact_cluster(
         nb.types.NoneType('none')
         (
             nb.float64[:, :], nb.float64[:, :],
-            nb.int64, nb.float64[:, :], nb.float64,
+            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
@@ -158,7 +175,8 @@ def interact_atoms(
     atoms: np.ndarray,
     clusters_coords: np.ndarray,
     cluster_size: int,
-    atoms_lj_params: np.ndarray,
+    atoms_morse_params: np.ndarray,
+    morse_mult: float,
     force_not_linked_gravity: float,
 ) -> None:
     for i in nb.prange(clusters_coords.shape[0]):
@@ -166,7 +184,7 @@ def interact_atoms(
         cluster_atoms, neighbours_atoms, cluster_mask = task_data
         cluster_atoms, cluster_mask = interact_cluster(
             cluster_atoms, neighbours_atoms, cluster_mask,
-            cluster_size, atoms_lj_params, force_not_linked_gravity,
+            cluster_size, atoms_morse_params, morse_mult, force_not_linked_gravity,
         )
         atoms[cluster_mask] = cluster_atoms
 
@@ -192,20 +210,20 @@ def apply_speed(
     atoms[:, A_COL_X] += atoms[:, A_COL_VX] * simulation_speed
     atoms[:, A_COL_Y] += atoms[:, A_COL_VY] * simulation_speed
 
-    mask_x_min = atoms[:, A_COL_X] < 0
-    mask_y_min = atoms[:, A_COL_Y] < 0
-    mask_x_max = atoms[:, A_COL_X] > max_coord[0]
-    mask_y_max = atoms[:, A_COL_Y] > max_coord[1]
-
-    atoms[mask_x_min, A_COL_VX] *= -1
-    atoms[mask_y_min, A_COL_VY] *= -1
-    atoms[mask_x_min, A_COL_X] *= -1
-    atoms[mask_y_min, A_COL_Y] *= -1
-
-    atoms[mask_x_max, A_COL_VX] *= -1
-    atoms[mask_y_max, A_COL_VY] *= -1
-    atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
-    atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
+    # mask_x_min = atoms[:, A_COL_X] < 0
+    # mask_y_min = atoms[:, A_COL_Y] < 0
+    # mask_x_max = atoms[:, A_COL_X] > max_coord[0]
+    # mask_y_max = atoms[:, A_COL_Y] > max_coord[1]
+    #
+    # atoms[mask_x_min, A_COL_VX] *= -1
+    # atoms[mask_y_min, A_COL_VY] *= -1
+    # atoms[mask_x_min, A_COL_X] *= -1
+    # atoms[mask_y_min, A_COL_Y] *= -1
+    #
+    # atoms[mask_x_max, A_COL_VX] *= -1
+    # atoms[mask_y_max, A_COL_VY] *= -1
+    # atoms[mask_x_max, A_COL_X] = max_coord[0] - (atoms[mask_x_max, A_COL_X] - max_coord[0])
+    # atoms[mask_y_max, A_COL_Y] = max_coord[1] - (atoms[mask_y_max, A_COL_Y] - max_coord[1])
 
     atoms[:, A_COL_VX] *= inertial_factor
     atoms[:, A_COL_VY] *= inertial_factor

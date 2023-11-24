@@ -5,7 +5,7 @@ import numpy as np
 import pygame
 
 from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, \
-    FORCE_GRAVITY, INERTIAL_FACTOR, SIMULATION_SPEED, ATOMS_LJ_PARAMS
+    FORCE_GRAVITY, INERTIAL_FACTOR, SIMULATION_SPEED, ATOMS_MORSE_PARAMS, MORSE_MULT
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE
 from app.screen import Screen
 from app.logic import interact_atoms, apply_speed
@@ -57,7 +57,7 @@ class Simulation:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
         interact_atoms(
             self._atoms, clusters_coords,
-            MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, FORCE_GRAVITY,
+            MAX_INTERACTION_DISTANCE, ATOMS_MORSE_PARAMS, MORSE_MULT, FORCE_GRAVITY,
         )
         # interact_atoms.parallel_diagnostics(level=4)
 
@@ -98,14 +98,20 @@ class Simulation:
                 elif event.key == pygame.K_MINUS:
                     self._screen.move_scale(0.9)
                 elif event.key == pygame.K_w:
-                    ATOMS_LJ_PARAMS[0][0] += 0.1
-                    print(f'sigma: {ATOMS_LJ_PARAMS[0][0]}')
+                    ATOMS_MORSE_PARAMS[0][0] += 0.1
+                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0]}')
                 elif event.key == pygame.K_q:
-                    ATOMS_LJ_PARAMS[0][0] -= 0.1
-                    print(f'sigma: {ATOMS_LJ_PARAMS[0][0]}')
+                    ATOMS_MORSE_PARAMS[0][0] -= 0.1
+                    print(f'eps: {ATOMS_MORSE_PARAMS[0][0]}')
                 elif event.key == pygame.K_s:
-                    ATOMS_LJ_PARAMS[0][1] += 0.1
-                    print(f'eps: {ATOMS_LJ_PARAMS[0][1]}')
+                    ATOMS_MORSE_PARAMS[0][1] += 0.1
+                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][1]}')
                 elif event.key == pygame.K_a:
-                    ATOMS_LJ_PARAMS[0][1] -= 0.1
-                    print(f'eps: {ATOMS_LJ_PARAMS[0][1]}')
+                    ATOMS_MORSE_PARAMS[0][1] -= 0.1
+                    print(f'alpha: {ATOMS_MORSE_PARAMS[0][1]}')
+                elif event.key == pygame.K_x:
+                    ATOMS_MORSE_PARAMS[0][2] += 0.1
+                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][2]}')
+                elif event.key == pygame.K_z:
+                    ATOMS_MORSE_PARAMS[0][2] -= 0.1
+                    print(f'sigma: {ATOMS_MORSE_PARAMS[0][2]}')
