@@ -5,3 +5,4 @@ icc_rt
 jupyter
 matplotlib
 seaborn
+plotly
