@@ -15,7 +15,19 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         # Coords
         np.random.randint(low=0, high=max_coord[0], size=size).astype('float'),
         np.random.randint(low=0, high=max_coord[1], size=size).astype('float'),
+        # Next Coords
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
         # Speed
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Next Speed
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Force
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Next Force
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Radius
@@ -25,10 +37,6 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         # Type
         types.astype('float'),
-        # Links counter
-        np.repeat(0, size).astype('float'),
-        # Links type counters
-        *(np.repeat(0, size).astype('float') for _ in range(len(ATOMS_COLORS)))
     ], dtype=np.float64).T
 
 
@@ -39,7 +47,19 @@ def generate_debug():
         # Coords
         np.array([500, 500, 600, 600]).astype('float'),
         np.array([500, 600, 500, 600]).astype('float'),
+        # Next Coords
+        np.array([0, 0, 0, 0]).astype('float'),
+        np.array([0, 0, 0, 0]).astype('float'),
         # Speed
+        np.array([0, 0, 0, 0]).astype('float'),
+        np.array([0, 0, 0, 0]).astype('float'),
+        # Next Speed
+        np.array([0, 0, 0, 0]).astype('float'),
+        np.array([0, 0, 0, 0]).astype('float'),
+        # Force
+        np.array([0, 0, 0, 0]).astype('float'),
+        np.array([0, 0, 0, 0]).astype('float'),
+        # Next Force
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
         # Radius
@@ -49,10 +69,4 @@ def generate_debug():
         np.array([0, 0, 0, 0]).astype('float'),
         # Type
         np.array([1, 1, 1, 1]).astype('float'),
-        # Links counter
-        np.array([0, 0, 0, 0]).astype('float'),
-        # Links type counters
-        np.array([0, 0, 0, 0]).astype('float'),
-        np.array([0, 0, 0, 0]).astype('float'),
-        np.array([0, 0, 0, 0]).astype('float'),
     ], dtype=np.float64).T

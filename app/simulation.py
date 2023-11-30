@@ -4,11 +4,10 @@ from typing import Tuple, Callable
 import numpy as np
 import pygame
 
-from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, \
-    FORCE_GRAVITY, INERTIAL_FACTOR, SIMULATION_SPEED, ATOMS_LJ_PARAMS
+from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE
 from app.screen import Screen
-from app.logic import interact_atoms, apply_speed
+from app.logic import interact_atoms, apply_next_values, calc_next_positions
 
 
 class Simulation:
@@ -48,21 +47,25 @@ class Simulation:
         self._is_stopped = True
 
     def _step(self):
-        self._step_move()
+        self._step_calc_next_positions()
         self._step_interact_atoms()
+        self._step_move()
         self._step_display()
         self._clock.tick(30)
+
+    def _step_calc_next_positions(self) -> None:
+        calc_next_positions(self._atoms, DELTA_T)
 
     def _step_interact_atoms(self) -> None:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
         interact_atoms(
             self._atoms, clusters_coords,
-            MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, FORCE_GRAVITY,
+            MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T,
         )
         # interact_atoms.parallel_diagnostics(level=4)
 
     def _step_move(self) -> None:
-        apply_speed(self._atoms, self._max_coord, MAX_INTERACTION_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED)
+        apply_next_values(self._atoms, MAX_INTERACTION_DISTANCE)
 
     def _step_display(self) -> None:
         self._screen.clear()
