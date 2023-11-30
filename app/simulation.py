@@ -2,6 +2,7 @@ import time
 from typing import Tuple, Callable
 
 import numpy as np
+import numba as nb
 import pygame
 
 from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T, GRAVITY, INERTIA

@@ -5,8 +5,8 @@ import numpy as np
 from app.config import ATOMS_COLORS, ATOMS_RADIUS
 
 
-def generate_random(size: int, max_coord: Tuple[int, int]):
-    types = np.random.randint(low=1, high=len(ATOMS_COLORS), size=size)
+def generate_random(size: int, max_coord: Tuple[int, int], types_from: int = 1):
+    types = np.random.randint(low=types_from, high=len(ATOMS_COLORS), size=size)
     radius = ATOMS_RADIUS[types]
 
     return np.array([
