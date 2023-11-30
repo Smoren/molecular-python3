@@ -91,12 +91,12 @@ def get_verlet_next_v(v, f, f_next, m, dt):
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def get_verlet_next(p: np.ndarray, rx: np.ndarray, ry: np.ndarray, dt: float, eps: float, alpha: float, sigma: float):
+def get_verlet_next(p: np.ndarray, rx: np.ndarray, ry: np.ndarray, dt: float, eps, alpha, sigma, gravity: float):
     r = np.sqrt(np.power(rx, 2) + np.power(ry, 2))
     m = np.pi * np.power(p[A_COL_R], 2)
 
     fx_next = get_verlet_next_f(r, rx, eps, alpha, sigma)
-    fy_next = get_verlet_next_f(r, ry, eps, alpha, sigma)
+    fy_next = get_verlet_next_f(r, ry, eps, alpha, sigma) + gravity
 
     vx_next = get_verlet_next_v(p[A_COL_VX], p[A_COL_FX], fx_next, m, dt)
     vy_next = get_verlet_next_v(p[A_COL_VY], p[A_COL_FY], fy_next, m, dt)

@@ -4,7 +4,7 @@ from typing import Tuple, Callable
 import numpy as np
 import pygame
 
-from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T
+from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T, GRAVITY, INERTIA
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE
 from app.screen import Screen
 from app.logic import interact_atoms, apply_next_values, calc_next_positions
@@ -60,12 +60,12 @@ class Simulation:
         clusters_coords = np.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], axis=0)
         interact_atoms(
             self._atoms, clusters_coords,
-            MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, DELTA_T,
+            MAX_INTERACTION_DISTANCE, ATOMS_LJ_PARAMS, GRAVITY, DELTA_T,
         )
         # interact_atoms.parallel_diagnostics(level=4)
 
     def _step_move(self) -> None:
-        apply_next_values(self._atoms, MAX_INTERACTION_DISTANCE)
+        apply_next_values(self._atoms, MAX_INTERACTION_DISTANCE, INERTIA)
 
     def _step_display(self) -> None:
         self._screen.clear()

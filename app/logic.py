@@ -3,7 +3,7 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
     A_COL_TYPE, A_COL_X_NEXT, A_COL_Y_NEXT, A_COL_FX, A_COL_R, A_COL_FY, A_COL_VX_NEXT, A_COL_VY_NEXT, A_COL_FX_NEXT, \
-    A_COL_FY_NEXT
+    A_COL_FY_NEXT, A_COL_FIXED
 from app.config import USE_JIT_CACHE
 from app.verlet import get_verlet_next_x, get_verlet_next
 
@@ -23,7 +23,8 @@ def get_cluster_task_data(atoms: np.ndarray, cluster_coords: np.ndarray) -> tupl
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
     cluster_mask = (atoms[:, A_COL_CX] == cluster_x) & \
-                   (atoms[:, A_COL_CY] == cluster_y)
+                   (atoms[:, A_COL_CY] == cluster_y) & \
+                   (atoms[:, A_COL_FIXED] < 1)
     neighbours_mask = (atoms[:, A_COL_CX] >= cluster_x - 1) & \
                       (atoms[:, A_COL_CX] <= cluster_x + 1) & \
                       (atoms[:, A_COL_CY] >= cluster_y - 1) & \
@@ -39,7 +40,7 @@ def get_cluster_task_data(atoms: np.ndarray, cluster_coords: np.ndarray) -> tupl
         nb.types.Tuple((nb.float64[:, :], nb.boolean[:]))
         (
             nb.float64[:, :], nb.float64[:, :], nb.boolean[:],
-            nb.int64, nb.float64[:, :], nb.float64,
+            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
@@ -54,6 +55,7 @@ def interact_cluster(
     cluster_mask: np.ndarray,
     cluster_size: int,
     atoms_lj_params: np.ndarray,
+    gravity: float,
     delta_t: float,
 ):
     coords_columns = np.array([A_COL_X, A_COL_Y])
@@ -74,9 +76,13 @@ def interact_cluster(
         ry = neighbours[:, A_COL_Y_NEXT] - atom[A_COL_Y_NEXT]
 
         eps, alpha, sigma = atoms_lj_params[int(atom[A_COL_TYPE])]
+        eps = (eps + atoms_lj_params[neighbours[:, A_COL_TYPE].astype(np.int64)][:, 0]) / 2
+        alpha = (alpha + atoms_lj_params[neighbours[:, A_COL_TYPE].astype(np.int64)][:, 1]) / 2
+        sigma = (sigma + atoms_lj_params[neighbours[:, A_COL_TYPE].astype(np.int64)][:, 2]) / 2
         dt = delta_t
 
-        fx_next, fy_next, vx_next, vy_next, v_next, u_next, ek_next = get_verlet_next(atom, rx, ry, dt, eps, alpha, sigma)
+        fx_next, fy_next, vx_next, vy_next, v_next, u_next, ek_next \
+            = get_verlet_next(atom, rx, ry, dt, eps, alpha, sigma, gravity)
 
         atom[A_COL_VX_NEXT] = vx_next
         atom[A_COL_VY_NEXT] = vy_next
@@ -91,7 +97,7 @@ def interact_cluster(
         nb.types.NoneType('none')
         (
             nb.float64[:, :], nb.float64[:, :],
-            nb.int64, nb.float64[:, :], nb.float64,
+            nb.int64, nb.float64[:, :], nb.float64, nb.float64,
         )
     ),
     fastmath=True,
@@ -106,6 +112,7 @@ def interact_atoms(
     clusters_coords: np.ndarray,
     cluster_size: int,
     atoms_lj_params: np.ndarray,
+    gravity: float,
     delta_t: float,
 ) -> None:
     for i in nb.prange(clusters_coords.shape[0]):
@@ -113,7 +120,7 @@ def interact_atoms(
         cluster_atoms, neighbours_atoms, cluster_mask = task_data
         cluster_atoms, cluster_mask = interact_cluster(
             cluster_atoms, neighbours_atoms, cluster_mask,
-            cluster_size, atoms_lj_params, delta_t,
+            cluster_size, atoms_lj_params, gravity, delta_t,
         )
         atoms[cluster_mask] = cluster_atoms
 
@@ -138,7 +145,7 @@ def calc_next_positions(atoms: np.ndarray, dt: float):
 @nb.njit(
     (
         nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64)
+        (nb.float64[:, :], nb.int64, nb.float64)
     ),
     fastmath=True,
     looplift=True,
@@ -146,12 +153,12 @@ def calc_next_positions(atoms: np.ndarray, dt: float):
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def apply_next_values(atoms: np.ndarray, cluster_size: int) -> None:
+def apply_next_values(atoms: np.ndarray, cluster_size: int, inertia: float) -> None:
     atoms[:, A_COL_X] = atoms[:, A_COL_X_NEXT]
     atoms[:, A_COL_Y] = atoms[:, A_COL_Y_NEXT]
 
-    atoms[:, A_COL_VX] = atoms[:, A_COL_VX_NEXT]
-    atoms[:, A_COL_VY] = atoms[:, A_COL_VY_NEXT]
+    atoms[:, A_COL_VX] = atoms[:, A_COL_VX_NEXT] * inertia
+    atoms[:, A_COL_VY] = atoms[:, A_COL_VY_NEXT] * inertia
 
     atoms[:, A_COL_FX] = atoms[:, A_COL_FX_NEXT]
     atoms[:, A_COL_FY] = atoms[:, A_COL_FY_NEXT]

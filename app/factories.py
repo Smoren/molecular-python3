@@ -5,8 +5,8 @@ import numpy as np
 from app.config import ATOMS_COLORS, ATOMS_RADIUS
 
 
-def generate_atoms(size: int, max_coord: Tuple[int, int]):
-    types = np.random.randint(low=0, high=len(ATOMS_COLORS), size=size)
+def generate_random(size: int, max_coord: Tuple[int, int]):
+    types = np.random.randint(low=1, high=len(ATOMS_COLORS), size=size)
     radius = ATOMS_RADIUS[types]
 
     return np.array([
@@ -37,6 +37,46 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         # Type
         types.astype('float'),
+        # Fixed
+        np.repeat(0, size).astype('float'),
+    ], dtype=np.float64).T
+
+
+def generate_vessel(size: int, max_coord: Tuple[int, int]):
+    coord_x = np.linspace(-max_coord[0]*0.5, max_coord[0]*1.5, size)
+    coord_y = max_coord[1] + 70 - 0.001 * np.power(coord_x-max_coord[0]/2, 2)
+    radius = ATOMS_RADIUS[0]
+
+    return np.array([
+        # ID
+        np.arange(0, size),
+        # Coords
+        coord_x,
+        coord_y,
+        # Next Coords
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Speed
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Next Speed
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Force
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Next Force
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Radius
+        np.repeat(radius, size).astype('float'),
+        # Cluster
+        np.repeat(0, size).astype('float'),
+        np.repeat(0, size).astype('float'),
+        # Type
+        np.repeat(0, size).astype('float'),
+        # Fixed
+        np.repeat(1, size).astype('float'),
     ], dtype=np.float64).T
 
 
@@ -69,4 +109,6 @@ def generate_debug():
         np.array([0, 0, 0, 0]).astype('float'),
         # Type
         np.array([1, 1, 1, 1]).astype('float'),
+        # Fixed
+        np.array([0, 0, 0, 1]).astype('float'),
     ], dtype=np.float64).T
