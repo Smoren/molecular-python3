@@ -73,10 +73,10 @@ def interact_cluster(
         rx = neighbours[:, A_COL_X_NEXT] - atom[A_COL_X_NEXT]
         ry = neighbours[:, A_COL_Y_NEXT] - atom[A_COL_Y_NEXT]
 
-        sigma, eps = atoms_lj_params[int(atom[A_COL_TYPE])]
+        eps, alpha, sigma = atoms_lj_params[int(atom[A_COL_TYPE])]
         dt = delta_t
 
-        fx_next, fy_next, vx_next, vy_next, v_next, u_next, ek_next = get_verlet_next(atom, rx, ry, dt, sigma, eps)
+        fx_next, fy_next, vx_next, vy_next, v_next, u_next, ek_next = get_verlet_next(atom, rx, ry, dt, eps, alpha, sigma)
 
         atom[A_COL_VX_NEXT] = vx_next
         atom[A_COL_VY_NEXT] = vy_next

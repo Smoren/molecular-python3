@@ -12,8 +12,8 @@ from app.constants import A_COL_VX, A_COL_FX, A_COL_R, A_COL_VY, A_COL_FY
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def lennard_jones_potential(r, sigma: float, eps: float) -> np.ndarray:
-    return 4 * eps * np.power(sigma, 12) / np.power(r, 12) - 4 * eps * np.power(sigma, 6) / np.power(r, 6)
+def morse_potential(r: np.ndarray, eps: float, alpha: float, sigma: float):
+    return eps * (np.exp(-2*alpha * (r - sigma)) - 2*np.exp(-alpha * (r - sigma)))
 
 
 @nb.njit(
@@ -23,8 +23,8 @@ def lennard_jones_potential(r, sigma: float, eps: float) -> np.ndarray:
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def lennard_jones_force(r, sigma: float, eps: float) -> np.ndarray:
-    return 24 * eps * np.power(sigma, 6) / np.power(r, 7) - 48 * eps * np.power(sigma, 12) / np.power(r, 13)
+def morse_force(r: np.ndarray, eps: float, alpha: float, sigma: float):
+    return -2*alpha * eps * np.exp(alpha*(sigma-r)) * (np.exp(alpha*(sigma-r)) - 1)
 
 
 @nb.njit(
@@ -57,8 +57,8 @@ def get_verlet_next_x(x, v, f, m, dt):
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def get_verlet_next_f(r, rx, sigma: float, eps: float):
-    return np.sum(lennard_jones_force(r, sigma, eps) * rx / r)
+def get_verlet_next_f(r, rx, eps: float, alpha: float, sigma: float):
+    return np.sum(morse_force(r, eps, alpha, sigma) * rx / r)
 
 
 @nb.njit(
@@ -68,8 +68,8 @@ def get_verlet_next_f(r, rx, sigma: float, eps: float):
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def get_verlet_next_u(rs, sigma: float, eps: float):
-    return np.sum(lennard_jones_potential(rs, sigma, eps)) / 2
+def get_verlet_next_u(rs, eps: float, alpha: float, sigma: float):
+    return np.sum(morse_potential(rs, eps, alpha, sigma)) / 2
 
 
 @nb.njit(
@@ -91,18 +91,18 @@ def get_verlet_next_v(v, f, f_next, m, dt):
     nogil=True,
     cache=USE_JIT_CACHE,
 )
-def get_verlet_next(p: np.ndarray, rx: np.ndarray, ry: np.ndarray, dt: float, sigma: float, eps: float):
+def get_verlet_next(p: np.ndarray, rx: np.ndarray, ry: np.ndarray, dt: float, eps: float, alpha: float, sigma: float):
     r = np.sqrt(np.power(rx, 2) + np.power(ry, 2))
     m = np.pi * np.power(p[A_COL_R], 2)
 
-    fx_next = get_verlet_next_f(r, rx, sigma, eps)
-    fy_next = get_verlet_next_f(r, ry, sigma, eps)
+    fx_next = get_verlet_next_f(r, rx, eps, alpha, sigma)
+    fy_next = get_verlet_next_f(r, ry, eps, alpha, sigma)
 
     vx_next = get_verlet_next_v(p[A_COL_VX], p[A_COL_FX], fx_next, m, dt)
     vy_next = get_verlet_next_v(p[A_COL_VY], p[A_COL_FY], fy_next, m, dt)
     v_next = np.sqrt(np.power(vx_next, 2) + np.power(vy_next, 2))
 
-    u_next = get_verlet_next_u(r, sigma, eps)
+    u_next = get_verlet_next_u(r, eps, alpha, sigma)
     ek_next = get_kinetic_energy(m, v_next)
 
     return fx_next, fy_next, vx_next, vy_next, v_next, u_next, ek_next
