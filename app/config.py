@@ -1,6 +1,4 @@
-import numpy as np
-
-USE_JIT_CACHE = True
+import torch
 
 ATOMS_COUNT = 1000
 WINDOW_SIZE = (1920, 1080)
@@ -18,7 +16,7 @@ FORCE_LINKED_ELASTIC = 0.16
 
 INERTIAL_FACTOR = 0.9
 
-ATOMS_GRAVITY = np.array([
+ATOMS_GRAVITY = torch.tensor([
     # [-1, -1, -1],
     # [-1, -1, -1],
     # [-1, -1, -1],
@@ -30,21 +28,21 @@ ATOMS_GRAVITY = np.array([
     [0.2, -1, -0.2],
     [-1, 0, 0.5],
     [0.1, -0.3, 0.1],
-], dtype=np.float64)
-ATOMS_LINK_GRAVITY = np.array([
+], dtype=torch.float64)
+ATOMS_LINK_GRAVITY = torch.tensor([
     [-1, -1, 1],
     [-1, -1, -1],
     [-1, -1, -1],
-], dtype=np.float64)
-ATOMS_LINKS = np.array([1, 3, 2], dtype=np.int64)
-ATOMS_LINK_TYPES = np.array([
+], dtype=torch.float64)
+ATOMS_LINKS = torch.tensor([1, 3, 2], dtype=torch.int64)
+ATOMS_LINK_TYPES = torch.tensor([
     [0, 1, 1],
     [1, 2, 1],
     [1, 1, 2],
-], dtype=np.int64)
-ATOMS_COLORS = np.array([
+], dtype=torch.int64)
+ATOMS_COLORS = torch.tensor([
     [250, 20, 20],
     [200, 140, 100],
     [80, 170, 140],
-], dtype=np.int64)
-ATOMS_RADIUS = np.array([4, 5, 3], dtype=np.int64)
+], dtype=torch.int64)
+ATOMS_RADIUS = torch.tensor([4, 5, 3], dtype=torch.int64)

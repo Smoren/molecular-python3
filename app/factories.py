@@ -1,6 +1,7 @@
 from typing import Tuple
 
 import numpy as np
+import torch
 
 from app.config import ATOMS_COLORS, ATOMS_RADIUS
 
@@ -9,7 +10,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
     types = np.random.randint(low=0, high=len(ATOMS_COLORS), size=size)
     radius = ATOMS_RADIUS[types]
 
-    return np.array([
+    return torch.tensor([
         # ID
         np.arange(0, size),
         # Coords
@@ -19,7 +20,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
         # Radius
-        radius.astype('float'),
+        radius.to(torch.float64),
         # Cluster
         np.repeat(0, size).astype('float'),
         np.repeat(0, size).astype('float'),
@@ -29,7 +30,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         # Links type counters
         *(np.repeat(0, size).astype('float') for _ in range(len(ATOMS_COLORS)))
-    ], dtype=np.float64).T
+    ], dtype=torch.float64).T
 
 
 def generate_debug():
