@@ -3,21 +3,9 @@ import numba as nb
 
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
     A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
-from app.config import USE_JIT_CACHE
 from app.utils import isin, np_apply_reducer, concat, np_unique_links
 
 
-@nb.njit(
-    (
-        nb.types.Tuple((nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-        (nb.float64[:, :], nb.int64[:, :], nb.float64[:])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: np.ndarray) -> tuple:
     cluster_x, cluster_y = cluster_coords[0], cluster_coords[1]
 
@@ -39,21 +27,6 @@ def get_cluster_task_data(atoms: np.ndarray, links: np.ndarray, cluster_coords: 
     return cluster_atoms, neighbours_atoms, links_filtered, cluster_mask
 
 
-@nb.njit(
-    (
-        nb.types.Tuple((nb.float64[:, :], nb.int64[:, :], nb.boolean[:]))
-        (
-            nb.float64[:, :], nb.float64[:, :], nb.int64[:, :], nb.boolean[:],
-            nb.int64, nb.float64[:, :], nb.float64[:, :], nb.int64[:],
-            nb.float64, nb.float64, nb.float64, nb.float64, nb.float64,
-        )
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def interact_cluster(
     cluster_atoms: np.ndarray,
     neighbour_atoms: np.ndarray,
@@ -204,17 +177,6 @@ def interact_cluster(
     return cluster_atoms, new_links_total, cluster_mask
 
 
-@nb.njit(
-    (
-        nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:, :], nb.int64[:], nb.int64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def handle_new_links(
     atoms: np.ndarray,
     links: np.ndarray,
@@ -251,17 +213,6 @@ def handle_new_links(
         atoms[link_candidate[L_COL_RHS], int(A_COL_LINKS+1+lhs_type)] += link_plus
 
 
-@nb.njit(
-    (
-        nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:, :])
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
     for i in nb.prange(links.shape[0]):
         link = links[i]
@@ -276,22 +227,6 @@ def handle_deleting_links(atoms: np.ndarray, links: np.ndarray) -> None:
         atoms[link[L_COL_RHS], A_COL_LINKS+1+lhs_type] -= 1
 
 
-@nb.njit(
-    (
-        nb.int64[:, :]
-        (
-            nb.float64[:, :], nb.int64[:, :], nb.float64[:, :],
-            nb.int64, nb.float64[:, :], nb.float64[:, :], nb.int64[:], nb.int64[:, :],
-            nb.float64, nb.float64, nb.float64, nb.float64, nb.float64,
-        )
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    parallel=True,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def interact_atoms(
     atoms: np.ndarray,
     links: np.ndarray,
@@ -329,17 +264,6 @@ def interact_atoms(
     return total_new_links[total_new_links[:, L_COL_DEL] != 1]
 
 
-@nb.njit(
-    (
-        nb.int64[:, :]
-        (nb.float64[:, :], nb.int64[:, :], nb.float64)
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: float) -> np.ndarray:
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
@@ -358,17 +282,6 @@ def interact_links(atoms: np.ndarray, links: np.ndarray, max_link_distance: floa
     return links_to_save
 
 
-@nb.njit(
-    (
-        nb.types.NoneType('none')
-        (nb.float64[:, :], nb.int64[:], nb.int64, nb.float64, nb.float64)
-    ),
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def apply_speed(
     atoms: np.ndarray,
     max_coord: np.ndarray,

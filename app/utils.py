@@ -3,16 +3,7 @@ from typing import List, Callable
 import numpy as np
 import numba as nb
 
-from app.config import USE_JIT_CACHE
 
-
-@nb.njit(
-    fastmath=True,
-    boundscheck=False,
-    looplift=True,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def isin(where: np.ndarray, what: np.ndarray) -> np.ndarray:
     where_size = where.shape[0]
     what_size = what.shape[0]
@@ -50,28 +41,6 @@ def isin(where: np.ndarray, what: np.ndarray) -> np.ndarray:
     return result
 
 
-@nb.njit(
-    fastmath=True,
-    boundscheck=False,
-    looplift=True,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
-def isin_old(a, b):
-    out = np.empty(a.shape[0], dtype=np.bool_)
-    b = set(b)
-    for i in nb.prange(a.shape[0]):
-        out[i] = a[i] in b
-    return out
-
-
-@nb.njit(
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray:
     assert arr.ndim == 2
     assert axis in [0, 1]
@@ -86,13 +55,6 @@ def np_apply_reducer(arr: np.ndarray, func1d: Callable, axis: int) -> np.ndarray
     return result
 
 
-@nb.njit(
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def np_unique_links(arr: np.ndarray) -> np.ndarray:
     assert arr.ndim == 2
 
@@ -105,13 +67,6 @@ def np_unique_links(arr: np.ndarray) -> np.ndarray:
     return np.array(list(result))
 
 
-@nb.njit(
-    fastmath=True,
-    looplift=True,
-    boundscheck=False,
-    nogil=True,
-    cache=USE_JIT_CACHE,
-)
 def concat(arrays: List[np.ndarray], columns_count: int, dtype: np.dtype) -> np.ndarray:
     total_len = 0
     for i in nb.prange(len(arrays)):
