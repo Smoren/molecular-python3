@@ -34,12 +34,12 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
 
 
 def generate_debug():
-    return np.array([
+    return torch.tensor([
         # ID
         np.array([0, 1, 2, 3]).astype('float'),
         # Coords
-        np.array([500, 500, 600, 600]).astype('float'),
-        np.array([500, 600, 500, 600]).astype('float'),
+        np.array([580, 580, 600, 600]).astype('float'),
+        np.array([580, 600, 580, 600]).astype('float'),
         # Speed
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
@@ -56,4 +56,30 @@ def generate_debug():
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
-    ], dtype=np.float64).T
+    ], dtype=torch.float64).T
+
+
+def generate_debug2():
+    return torch.tensor([
+        # ID
+        np.array([0, 1]).astype('float'),
+        # Coords
+        np.array([550, 550]).astype('float'),
+        np.array([550, 600]).astype('float'),
+        # Speed
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        # Radius
+        np.array([5, 10]).astype('float'),
+        # Cluster
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        # Type
+        np.array([1, 2]).astype('float'),
+        # Links counter
+        np.array([0, 0]).astype('float'),
+        # Links type counters
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+        np.array([0, 0]).astype('float'),
+    ], dtype=torch.float64).T
