@@ -105,7 +105,7 @@ def interact_cluster(
         _k = neighbours_bounced_l - neighbours_bounced[:, A_COL_R] - atom[A_COL_R]
 
         ###############################
-        dv_elastic = torch.sum((_d_norm.T*_k).T, axis=0) * force_bounce_elastic \
+        dv_elastic = torch.sum((_d_norm.T*_k).T, dim=0) * force_bounce_elastic \
             if _d_norm.shape[0] > 0 \
             else torch.tensor([0, 0], dtype=torch.float64)
         ###############################
