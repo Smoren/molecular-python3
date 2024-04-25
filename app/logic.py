@@ -49,8 +49,9 @@ def interact_cluster(
         atom = cluster_atoms[i]
 
         # [Определим соседей, с которыми возможно взаимодействие]
-        _mask_exclude_self = ((neighbour_atoms[:, A_COL_X] != atom[A_COL_X]) |
-                              (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y]))
+        # _mask_exclude_self = ((neighbour_atoms[:, A_COL_X] != atom[A_COL_X]) |
+        #                       (neighbour_atoms[:, A_COL_Y] != atom[A_COL_Y]))
+        _mask_exclude_self = neighbour_atoms[:, A_COL_ID] != int(atom[A_COL_ID])
         neighbours = neighbour_atoms[_mask_exclude_self]
         _d = neighbours[:, coords_columns] - atom[coords_columns]
         _l2 = _d[:, 0] ** 2 + _d[:, 1] ** 2
