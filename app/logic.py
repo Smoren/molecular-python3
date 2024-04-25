@@ -1,6 +1,7 @@
 import numba as nb
 import torch
 
+from app.config import DEVICE
 from app.constants import A_COL_CX, A_COL_CY, A_COL_X, A_COL_Y, A_COL_VX, A_COL_VY, \
     A_COL_TYPE, A_COL_R, A_COL_ID, L_COL_LHS, L_COL_RHS, A_COL_LINKS, L_COL_DEL
 from app.utils import np_apply_reducer, np_unique_links
@@ -107,7 +108,7 @@ def interact_cluster(
         ###############################
         dv_elastic = torch.sum((_d_norm.T*_k).T, dim=0) * force_bounce_elastic \
             if _d_norm.shape[0] > 0 \
-            else torch.tensor([0, 0], dtype=torch.float64)
+            else torch.tensor([0, 0], dtype=torch.float64).to(DEVICE)
         ###############################
 
         # [Найдем ускорение гравитационных взаимодействий атома с не связанными соседями]
@@ -151,16 +152,16 @@ def interact_cluster(
         ###############################
 
         # [Создаем новые связи]
-        new_atom_links = torch.empty(size=(neighbours_to_link.shape[0], 3), dtype=torch.int64)
-        new_atom_links[:, 0] = atom[A_COL_ID].repeat(neighbours_to_link.shape[0]).to(torch.int64)
+        new_atom_links = torch.empty(size=(neighbours_to_link.shape[0], 3), dtype=torch.int64).to(DEVICE)
+        new_atom_links[:, 0] = atom[A_COL_ID].repeat(neighbours_to_link.shape[0]).to(torch.int64).to(DEVICE)
         # np.repeat(atom[A_COL_ID], neighbours_to_link.shape[0]).astype(np.int64)
-        new_atom_links[:, 1] = neighbours_to_link[:, A_COL_ID].T.to(torch.int64)
-        new_atom_links[:, 2] = torch.zeros(size=(neighbours_to_link.shape[0],)).to(torch.int64)
+        new_atom_links[:, 1] = neighbours_to_link[:, A_COL_ID].T.to(torch.int64).to(DEVICE)
+        new_atom_links[:, 2] = torch.zeros(size=(neighbours_to_link.shape[0],)).to(torch.int64).to(DEVICE)
 
         # [Если кандидаты есть]
         if new_atom_links.shape[0] > 0:
             # [Отсортируем ID в кортежах связей по возрастанию]
-            _id_cols = torch.tensor([0, 1])
+            _id_cols = torch.tensor([0, 1]).to(DEVICE)
 
             new_atom_links[:, 0], new_atom_links[:, 1] = np_apply_reducer(
                 new_atom_links[:, _id_cols], torch.min, axis=1,
@@ -172,7 +173,7 @@ def interact_cluster(
             new_atom_links = new_atom_links[:(max_atom_links-atom_links.shape[0])]
             new_links.append(new_atom_links)
 
-    new_links_total = np_unique_links(torch.concat(new_links)) if len(new_links) else torch.empty(size=(0, 3))
+    new_links_total = np_unique_links(torch.concat(new_links)) if len(new_links) else torch.empty(size=(0, 3)).to(DEVICE)
 
     return cluster_atoms, new_links_total, cluster_mask
 
@@ -242,7 +243,7 @@ def interact_atoms(
     force_linked_elastic: float,
     min_link_distance: float,
 ) -> torch.Tensor:
-    new_links = [torch.empty(size=(0, 3), dtype=torch.int64)] * clusters_coords.shape[0]
+    new_links = [torch.empty(size=(0, 3), dtype=torch.int64).to(DEVICE)] * clusters_coords.shape[0]
     for i in nb.prange(clusters_coords.shape[0]):
         task_data = get_cluster_task_data(atoms, links, clusters_coords[i])
         cluster_atoms, neighbours_atoms, links_filtered, cluster_mask = task_data
@@ -253,11 +254,11 @@ def interact_atoms(
             force_linked_elastic, min_link_distance,
         )
         atoms[cluster_mask] = cluster_atoms
-        new_links[i] = torch.empty(size=(cluster_new_links.shape[0], 3), dtype=torch.int64)
+        new_links[i] = torch.empty(size=(cluster_new_links.shape[0], 3), dtype=torch.int64).to(DEVICE)
         for j in range(cluster_new_links.shape[0]):
             new_links[i][j] = cluster_new_links[j]
 
-    total_new_links = np_unique_links(torch.concat(new_links))
+    total_new_links = np_unique_links(torch.concat(new_links).to(DEVICE))
 
     handle_new_links(atoms, total_new_links, atoms_links, atom_link_types)
 
@@ -268,7 +269,7 @@ def interact_links(atoms: torch.Tensor, links: torch.Tensor, max_link_distance: 
     lhs_atoms = atoms[links[:, L_COL_LHS]]
     rhs_atoms = atoms[links[:, L_COL_RHS]]
 
-    coords_columns = torch.tensor([A_COL_X, A_COL_Y])
+    coords_columns = torch.tensor([A_COL_X, A_COL_Y]).to(DEVICE)
     d = rhs_atoms[:, coords_columns] - lhs_atoms[:, coords_columns]
     l2 = d[:, 0]**2 + d[:, 1]**2
     l = torch.sqrt(l2)

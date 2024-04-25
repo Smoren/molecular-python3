@@ -1,5 +1,7 @@
 import torch
 
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
 ATOMS_COUNT = 1000
 WINDOW_SIZE = (1920, 1080)
 MAX_COORD = (1000, 1000)
@@ -28,21 +30,21 @@ ATOMS_GRAVITY = torch.tensor([
     [0.2, -1, -0.2],
     [-1, 0, 0.5],
     [0.1, -0.3, 0.1],
-], dtype=torch.float64)
+], dtype=torch.float64).to(DEVICE)
 ATOMS_LINK_GRAVITY = torch.tensor([
     [-1, -1, 1],
     [-1, -1, -1],
     [-1, -1, -1],
-], dtype=torch.float64)
-ATOMS_LINKS = torch.tensor([1, 3, 2], dtype=torch.int64)
+], dtype=torch.float64).to(DEVICE)
+ATOMS_LINKS = torch.tensor([1, 3, 2], dtype=torch.int64).to(DEVICE)
 ATOMS_LINK_TYPES = torch.tensor([
     [0, 1, 1],
     [1, 2, 1],
     [1, 1, 2],
-], dtype=torch.int64)
+], dtype=torch.int64).to(DEVICE)
 ATOMS_COLORS = torch.tensor([
     [250, 20, 20],
     [200, 140, 100],
     [80, 170, 140],
-], dtype=torch.int64)
-ATOMS_RADIUS = torch.tensor([4, 5, 3], dtype=torch.int64)
+], dtype=torch.int64).to(DEVICE)
+ATOMS_RADIUS = torch.tensor([4, 5, 3], dtype=torch.int64).to(DEVICE)

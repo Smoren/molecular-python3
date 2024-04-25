@@ -3,7 +3,7 @@ from typing import Tuple
 import numpy as np
 import torch
 
-from app.config import ATOMS_COLORS, ATOMS_RADIUS
+from app.config import ATOMS_COLORS, ATOMS_RADIUS, DEVICE
 
 
 def generate_atoms(size: int, max_coord: Tuple[int, int]):
@@ -30,7 +30,7 @@ def generate_atoms(size: int, max_coord: Tuple[int, int]):
         np.repeat(0, size).astype('float'),
         # Links type counters
         *(np.repeat(0, size).astype('float') for _ in range(len(ATOMS_COLORS)))
-    ], dtype=torch.float64).T
+    ], dtype=torch.float64).T.to(DEVICE)
 
 
 def generate_debug():
@@ -56,7 +56,7 @@ def generate_debug():
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
         np.array([0, 0, 0, 0]).astype('float'),
-    ], dtype=torch.float64).T
+    ], dtype=torch.float64).T.to(DEVICE)
 
 
 def generate_debug2():
@@ -82,4 +82,4 @@ def generate_debug2():
         np.array([0, 0]).astype('float'),
         np.array([0, 0]).astype('float'),
         np.array([0, 0]).astype('float'),
-    ], dtype=torch.float64).T
+    ], dtype=torch.float64).T.to(DEVICE)

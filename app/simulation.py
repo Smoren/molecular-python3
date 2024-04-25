@@ -6,7 +6,7 @@ import torch
 
 from app.config import ATOMS_COLORS, MAX_INTERACTION_DISTANCE, ATOMS_GRAVITY, ATOMS_LINK_GRAVITY, ATOMS_LINKS, \
     ATOMS_LINK_TYPES, FORCE_BOUNCE_ELASTIC, FORCE_NOT_LINKED_GRAVITY, FORCE_LINKED_GRAVITY, MIN_LINK_DISTANCE, \
-    FORCE_LINKED_ELASTIC, MAX_LINK_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED
+    FORCE_LINKED_ELASTIC, MAX_LINK_DISTANCE, INERTIAL_FACTOR, SIMULATION_SPEED, DEVICE
 from app.constants import A_COL_R, A_COL_Y, A_COL_X, A_COL_CX, A_COL_CY, A_COL_TYPE, L_COL_LHS, L_COL_RHS
 from app.screen import Screen
 from app.logic import interact_atoms, apply_speed, interact_links
@@ -24,10 +24,10 @@ class Simulation:
 
     def __init__(self, atoms: torch.Tensor, window_size: Tuple[int, int], max_coord: Tuple[int, int]):
         self._atoms = atoms
-        self._max_coord = torch.tensor(max_coord)
+        self._max_coord = torch.tensor(max_coord).to(DEVICE)
         self._screen = Screen(pygame.display.set_mode(window_size))
         self._clock = pygame.time.Clock()
-        self._links = torch.empty(size=(0, 3), dtype=torch.int64)
+        self._links = torch.empty(size=(0, 3), dtype=torch.int64).to(DEVICE)
 
     def start(self):
         self._is_stopped = False
@@ -56,7 +56,7 @@ class Simulation:
         self._clock.tick(30)
 
     def _step_interact_atoms(self) -> None:
-        clusters_coords = torch.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], dim=0)
+        clusters_coords = torch.unique(self._atoms[:, [A_COL_CX, A_COL_CY]], dim=0).to(DEVICE)
         new_links = interact_atoms(
             self._atoms, self._links, clusters_coords,
             MAX_INTERACTION_DISTANCE, ATOMS_GRAVITY, ATOMS_LINK_GRAVITY, ATOMS_LINKS, ATOMS_LINK_TYPES,
@@ -64,7 +64,7 @@ class Simulation:
             FORCE_LINKED_ELASTIC, MIN_LINK_DISTANCE,
         )
         # interact_atoms.parallel_diagnostics(level=4)
-        self._links = torch.concat([self._links, new_links])
+        self._links = torch.concat((self._links, new_links)).to(DEVICE)
 
     def _step_interact_links(self) -> None:
         self._links = interact_links(self._atoms, self._links, MAX_LINK_DISTANCE)
@@ -83,12 +83,12 @@ class Simulation:
     def _display_atoms(self):
         colors = ATOMS_COLORS[self._atoms[:, A_COL_TYPE].to(torch.int64)]
         self._screen.draw_circles_vectorized(
-            self._atoms[:, A_COL_X],
-            self._atoms[:, A_COL_Y],
-            self._atoms[:, A_COL_R],
-            colors[:, 0],
-            colors[:, 1],
-            colors[:, 2],
+            self._atoms[:, A_COL_X].detach().cpu().numpy(),
+            self._atoms[:, A_COL_Y].detach().cpu().numpy(),
+            self._atoms[:, A_COL_R].detach().cpu().numpy(),
+            colors[:, 0].detach().cpu().numpy(),
+            colors[:, 1].detach().cpu().numpy(),
+            colors[:, 2].detach().cpu().numpy(),
         )
 
     def _display_links(self):
@@ -102,16 +102,16 @@ class Simulation:
 
         lhs_colors = ATOMS_COLORS[self._atoms[self._links[:, L_COL_LHS], A_COL_TYPE].to(torch.int64)]
         rhs_colors = ATOMS_COLORS[self._atoms[self._links[:, L_COL_RHS], A_COL_TYPE].to(torch.int64)]
-        colors = torch.mean(torch.stack((lhs_colors.to(torch.float64), rhs_colors.to(torch.float64))), dim=0)
+        colors = torch.mean(torch.stack((lhs_colors.to(torch.float64), rhs_colors.to(torch.float64))), dim=0).to(DEVICE)
 
         self._screen.draw_lines_vectorized(
-            lhs_coord_x,
-            lhs_coord_y,
-            rhs_coord_x,
-            rhs_coord_y,
-            colors[:, 0],
-            colors[:, 1],
-            colors[:, 2],
+            lhs_coord_x.detach().cpu().numpy(),
+            lhs_coord_y.detach().cpu().numpy(),
+            rhs_coord_x.detach().cpu().numpy(),
+            rhs_coord_y.detach().cpu().numpy(),
+            colors[:, 0].detach().cpu().numpy(),
+            colors[:, 1].detach().cpu().numpy(),
+            colors[:, 2].detach().cpu().numpy(),
         )
 
     def _handle_events(self):
